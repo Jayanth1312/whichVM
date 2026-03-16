@@ -1,0 +1,40 @@
+name: WhichVM Pipeline Sync
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs every single day at midnight UTC
+  workflow_dispatch: # Allows you to Trigger manually in GitHub panel right now!
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './backend/package.json'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          npm install
+
+      - name: Run Pipeline
+        env:
+          NODE_ENV: production
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          CLOUDPRICE_AWS_KEY: ${{ secrets.CLOUDPRICE_AWS_KEY }}
+          CLOUDPRICE_AZURE_KEY: ${{ secrets.CLOUDPRICE_AZURE_KEY }}
+          CLOUDPRICE_GCP_KEY: ${{ secrets.CLOUDPRICE_GCP_KEY }}
+        run: |
+          cd backend
+          npm run build
+          npm run cron

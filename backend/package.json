@@ -1,0 +1,34 @@
+{
+  "name": "whichvm-backend",
+  "version": "0.3.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "pipeline": "tsx src/pipeline/orchestrator.ts",
+    "sync:aws": "node src/sync-aws.js",
+    "sync:azure": "node src/sync-azure.js",
+    "sync:gcp": "node src/sync-gcp.js",
+    "cron": "tsx src/pipeline/cron-runner.ts"
+  },
+  "dependencies": {
+    "@msgpack/msgpack": "^3.1.3",
+    "@vercel/blob": "^2.3.1",
+    "axios": "^1.13.5",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "fzstd": "^0.1.1",
+    "mongodb": "^7.1.0",
+    "zstd-codec": "^0.1.5"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.2.3",
+    "concurrently": "^9.2.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
