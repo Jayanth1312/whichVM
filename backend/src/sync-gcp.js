@@ -28,7 +28,7 @@ const BASE =
   process.env.CLOUDPRICE_BASE_URL || "https://data.cloudprice.net/api/v2";
 const OUTPUT_DIR = path.join(__dirname, "../output");
 
-const CALL_DELAY_MS = 600;
+const CALL_DELAY_MS = 750;
 const RATE_LIMIT_WAITS = [10000, 20000, 40000, 60000, 120000];
 
 let GCP_REGIONS = [];
