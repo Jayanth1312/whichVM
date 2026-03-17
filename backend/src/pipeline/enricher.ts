@@ -45,20 +45,22 @@ export async function enrichProvider(
 
   const regionFiles = new Map<string, RegionFile>();
 
-  for (const file of jsonFiles) {
-    try {
-      const filePath = path.join(providerDir, file);
-      const content = fs.readFileSync(filePath, "utf8");
-      const regionFile: RegionFile = JSON.parse(content);
+  await Promise.all(
+    jsonFiles.map(async (file) => {
+      try {
+        const filePath = path.join(providerDir, file);
+        const content = await fs.promises.readFile(filePath, "utf8");
+        const regionFile: RegionFile = JSON.parse(content);
 
-      // Use the region from the file content, or derive from filename
-      const region = regionFile.region || file.replace(".json", "");
+        // Use the region from the file content, or derive from filename
+        const region = regionFile.region || file.replace(".json", "");
 
-      regionFiles.set(region, regionFile);
-    } catch (err: any) {
-      console.warn(`[Enricher] Failed to read ${file}: ${err.message}`);
-    }
-  }
+        regionFiles.set(region, regionFile);
+      } catch (err: any) {
+        console.warn(`[Enricher] Failed to read ${file}: ${err.message}`);
+      }
+    }),
+  );
 
   console.log(
     `[Enricher] Loaded ${regionFiles.size} region files for ${provider}`,

@@ -1,112 +1,80 @@
-/**
- * sync-aws.js
- *
- * Fetches AWS EC2 data from CloudPrice v2 API in parallel using up to 3 keys.
- */
+const requireFresh = process.argv.includes("--fresh");
+const fs = require("fs");
+const path = require("path");
 
-require("dotenv").config({ path: require("path").join(__dirname, "../.env") });
+require("dotenv").config({ path: path.join(__dirname, "../.env") });
 
+// Support 3 distinct CloudPrice API Keys for parallel fetching Concurrency
 const KEYS = [
   process.env.CLOUDPRICE_AWS_KEY || process.env.CLOUDPRICE_KEY_1,
-  process.env.CLOUDPRICE_AZURE_KEY,
-  process.env.CLOUDPRICE_GCP_KEY,
+  process.env.CLOUDPRICE_AZURE_KEY || process.env.CLOUDPRICE_KEY_2,
+  process.env.CLOUDPRICE_GCP_KEY || process.env.CLOUDPRICE_KEY_3,
 ].filter(Boolean);
 
 if (KEYS.length === 0) {
+  // Fallback to absolute default if no numbered list found
   const fallback = process.env.CLOUDPRICE_AWS_KEY || process.env.CLOUDPRICE_KEY;
   if (fallback) KEYS.push(fallback);
   else {
-    console.error("ERROR: No CLOUDPRICE API keys found in .env");
+    console.error("ERROR: No CLOUDPRICE API keys found in .env (Add CLOUDPRICE_KEY_1, _2, _3)");
     process.exit(1);
   }
 }
 
-const fs = require("fs");
-const path = require("path");
-
 const BASE = process.env.CLOUDPRICE_BASE_URL || "https://data.cloudprice.net/api/v2";
 const OUTPUT_DIR = path.join(__dirname, "../output");
 
-const CALL_DELAY_MS = 250;
+console.log(`\n  [Config] Parallel Concurrency: ${KEYS.length} keys`);
+
+const CALL_DELAY_MS = 250; // Delay set smaller per worker to optimize totals
 const RATE_LIMIT_WAITS = [5000, 15000, 30000, 60000];
 
 let AWS_REGIONS = [];
 let PAYMENT_CONFIGS = [];
 
-// ─── HELPER ───
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-function buildQS(params) {
-  return Object.entries(params)
-    .filter(([, v]) => v != null)
-    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-    .join("&");
-}
-
-// ─── API FETCH (Sequential per worker with single key) ───
 async function apiFetch(pathWithQS, apiKey) {
   const url = `${BASE}${pathWithQS}`;
-
   for (let attempt = 0; attempt <= RATE_LIMIT_WAITS.length; attempt++) {
     try {
       const res = await fetch(url, {
-        headers: {
-          "subscription-key": apiKey,
-          Accept: "application/json",
-        },
+        headers: { "subscription-key": apiKey, Accept: "application/json" },
       });
-
       if (res.status === 429) {
-        const wait = RATE_LIMIT_WAITS[attempt] || 30000;
-        await sleep(wait);
-        continue;
+         const wait = RATE_LIMIT_WAITS[attempt] || 30000;
+         await new Promise(r => setTimeout(r, wait));
+         continue;
       }
-
       if (res.status === 500) return null;
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
       const json = await res.json();
-      if (json?.Status !== "ok") throw new Error("Non-ok status");
+      if (json?.Status !== "ok") return null;
       return json.Data;
     } catch (e) {
       if (attempt >= RATE_LIMIT_WAITS.length) throw e;
-      await sleep(RATE_LIMIT_WAITS[attempt] || 5000);
+      await new Promise(r => setTimeout(r, 5000));
     }
   }
 }
 
-// ─── METADATA FETCHERS ───
 async function fetchRegions() {
   const data = await apiFetch("/aws/ec2/regions", KEYS[0]);
   const items = data?.Items ?? data ?? [];
-  AWS_REGIONS = items.map((r) =>
-    typeof r === "string" ? r : (r.Region ?? r.region ?? r.name ?? r.Name),
-  );
+  AWS_REGIONS = items.map(r => typeof r === "string" ? r : (r.Region ?? r.region ?? r.name));
   return AWS_REGIONS;
 }
 
 async function fetchPaymentTypes() {
   const data = await apiFetch("/aws/ec2/payment-types", KEYS[0]);
   const items = data?.Items ?? data ?? [];
-  const rawTypes = items.map((p) =>
-    typeof p === "string" ? p : (p.PaymentType ?? p.paymentType ?? p.name ?? p.Name),
-  );
-
+  const rawTypes = items.map(p => typeof p === "string" ? p : (p.PaymentType ?? p.paymentType ?? p.name));
   PAYMENT_CONFIGS = [];
   for (const pt of rawTypes) {
-    PAYMENT_CONFIGS.push({
-      key: `linux${pt}`,
-      qs: { operatingSystem: "Linux", paymentType: pt },
-    });
-    PAYMENT_CONFIGS.push({
-      key: `windows${pt}`,
-      qs: { operatingSystem: "Windows", paymentType: pt },
-    });
+    PAYMENT_CONFIGS.push({ key: `linux${pt}`, qs: { operatingSystem: "Linux", paymentType: pt } });
+    PAYMENT_CONFIGS.push({ key: `windows${pt}`, qs: { operatingSystem: "Windows", paymentType: pt } });
   }
   return PAYMENT_CONFIGS;
 }
 
-// ─── EXTRACT & MERGE SPECS ───
 function extractBasicSpecs(item) {
   return {
     instanceType: item.InstanceType ?? item.name ?? null,
@@ -138,7 +106,6 @@ function mergeDetailSpecs(basic, detail) {
   };
 }
 
-// ─── PIVOT AND WRITE ───
 function pivotAndWrite(instanceMap) {
   const providerDir = path.join(OUTPUT_DIR, "aws");
   fs.mkdirSync(providerDir, { recursive: true });
@@ -181,9 +148,14 @@ function pivotAndWrite(instanceMap) {
   return totalFiles;
 }
 
-// ─── MAIN ───
+function buildQS(params) {
+  return Object.entries(params)
+    .filter(([, v]) => v != null)
+    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+    .join("&");
+}
+
 async function main() {
-  console.log(`\n  [AWS] Concurrency: ${KEYS.length} keys available`);
   await fetchRegions();
   await fetchPaymentTypes();
 
@@ -195,7 +167,7 @@ async function main() {
     }
   }
 
-  console.log(`\n[AWS Pricing] Tasks: ${tasks.length}`);
+  console.log(`\n[Phase 3] Total Pricing Tasks: ${tasks.length}`);
 
   let taskIdx = 0;
   const runWorker = async (apiKey, workerId) => {
@@ -225,43 +197,43 @@ async function main() {
         }
         process.stdout.write(".");
       } catch (e) {
-        process.stdout.write("✗");
+        console.error(`\n[Worker ${workerId}] Error task ${currentIdx}: ${e.message}`);
       }
-      await sleep(CALL_DELAY_MS);
+      await new Promise(r => setTimeout(r, CALL_DELAY_MS));
     }
   };
 
+  // Run 3 workers in Parallel
   const startTime = Date.now();
   await Promise.all(KEYS.map((key, i) => runWorker(key, i + 1)));
-  console.log(`\n Pricing took: ${Math.round((Date.now() - startTime)/1000)}s`);
+  console.log(`\n Pricing Phase Took: ${Math.round((Date.now() - startTime)/1000)}s`);
 
+  // Phase 4: Enrich Specs Parallel
   const instancesToEnrich = [...instanceMap.keys()];
+  console.log(`\n[Phase 4] Enriching ${instancesToEnrich.length} instances`);
+
   let enrichIdx = 0;
-
-  console.log(`\n[AWS Enrichment] Total: ${instancesToEnrich.length}`);
-
   const enrichWorker = async (apiKey, workerId) => {
     while (enrichIdx < instancesToEnrich.length) {
       const currentIdx = enrichIdx++;
       const it = instancesToEnrich[currentIdx];
       try {
-        const detail = await apiFetch(`/aws/ec2/instances/${encodeURIComponent(it)}`, apiKey);
-        if (detail) {
-          const entry = instanceMap.get(it);
-          if (entry) entry.specs = mergeDetailSpecs(entry.specs, detail);
-          process.stdout.write("+");
-        }
-      } catch (e) {
-        process.stdout.write("✗");
-      }
-      await sleep(CALL_DELAY_MS);
+         const detail = await apiFetch(`/aws/ec2/instances/${encodeURIComponent(it)}`, apiKey);
+         if (detail) {
+            const entry = instanceMap.get(it);
+            if (entry) entry.specs = mergeDetailSpecs(entry.specs, detail);
+         }
+         process.stdout.write("+");
+      } catch (e) {}
+      await new Promise(r => setTimeout(r, CALL_DELAY_MS));
     }
   };
   await Promise.all(KEYS.map((key, i) => enrichWorker(key, i + 1)));
 
-  console.log(`\n[AWS Write] Writing JSON files...`);
+  // Phase 5: Pivot & Write
+  console.log(`\n[Phase 5] Writing JSON files to disk...`);
   const totalFiles = pivotAndWrite(instanceMap);
-  console.log(`✓ AWS Sync Complete! Total regions written: ${totalFiles}`);
+  console.log(`\n✓ AWS Sync Complete! Total files written: ${totalFiles}`);
 }
 
 main().catch(console.error);

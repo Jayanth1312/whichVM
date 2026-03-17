@@ -352,6 +352,9 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
   // Restore filter state from localStorage when provider changes
   React.useEffect(() => {
     setIsRestored(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("lastViewedProvider", provider.toLowerCase());
+    }
     const saved = loadFilterState(provider);
     if (saved) {
       if (saved.region && saved.region !== region) setRegion(saved.region);
@@ -468,7 +471,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
         try {
           const manifestRes = await cachedFetch(
             `${API_BASE}/meta/index.json`,
-            12 * 60 * 60 * 1000,
+            1 * 60 * 1000,
           );
           if (manifestRes.ok) manifest = await manifestRes.json();
         } catch {}
@@ -512,7 +515,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
       try {
         const manifestRes = await cachedFetch(
           `${API_BASE}/meta/index.json`,
-          12 * 60 * 60 * 1000,
+          1 * 60 * 1000,
         );
         if (!manifestRes.ok) return;
         const manifest = await manifestRes.json();
@@ -691,7 +694,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
       try {
         const response = await cachedFetch(
           `${API_BASE}/meta/index.json`,
-          12 * 60 * 60 * 1000,
+          1 * 60 * 1000,
         );
         if (response.ok) {
           const manifest = await response.json();

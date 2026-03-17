@@ -6,15 +6,39 @@
  * In dev, you can trigger it manually.
  */
 
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { runPipeline } from "../pipeline/orchestrator";
 import { Provider } from "../types";
+import { config } from "../config";
 
 const router = Router();
 
 let pipelineRunning = false;
 
-router.post("/cron/update", async (req: Request, res: Response) => {
+const requireCronSecret = (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  const cronSecret = config.cronSecret || process.env.CRON_SECRET;
+
+  // In development, if no secret is configured, allow bypass
+  if (config.nodeEnv !== "production" && !cronSecret) {
+    next();
+    return;
+  }
+
+  if (!cronSecret) {
+    res.status(500).json({ error: "Server configuration error: CRON_SECRET is not set." });
+    return;
+  }
+
+  if (!authHeader || authHeader !== `Bearer ${cronSecret}`) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  next();
+};
+
+router.post("/cron/update", requireCronSecret, async (req: Request, res: Response) => {
   if (pipelineRunning) {
     res.status(429).json({
       error: "Pipeline is already running",
@@ -53,7 +77,7 @@ router.post("/cron/update", async (req: Request, res: Response) => {
 });
 
 // GET version for easy browser triggering during dev
-router.get("/cron/update", async (_req: Request, res: Response) => {
+router.get("/cron/update", requireCronSecret, async (_req: Request, res: Response) => {
   if (pipelineRunning) {
     res.status(429).json({ error: "Pipeline is already running" });
     return;

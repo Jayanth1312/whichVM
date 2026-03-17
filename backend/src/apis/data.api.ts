@@ -44,7 +44,7 @@ router.get("/data/meta/index.json", async (_req: Request, res: Response) => {
 
   // 1. Production Mode: Default straight to Vercel Blob CDN
   if (config.blobToken) {
-    const baseCdn = config.blobCdnUrl || "https://awi0ptjauiy6qiis.public.blob.vercel-storage.com";
+    const baseCdn = config.blobCdnUrl;
     const cdnUrl = `${baseCdn}/meta/index.json`;
     await proxyFromCdn(_req, res, cdnUrl);
     return;
@@ -83,7 +83,7 @@ router.get("/data/:provider/:file", async (req: Request, res: Response) => {
 
   // 1. Production Mode: Default straight to Vercel Blob CDN
   if (config.blobToken) {
-    const baseCdn = config.blobCdnUrl || "https://awi0ptjauiy6qiis.public.blob.vercel-storage.com";
+    const baseCdn = config.blobCdnUrl;
     const cdnUrl = `${baseCdn}/${provider}/${safeFile}`;
     await proxyFromCdn(req, res, cdnUrl);
     return;

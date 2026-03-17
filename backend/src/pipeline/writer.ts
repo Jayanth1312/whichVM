@@ -39,6 +39,7 @@ async function uploadToBlob(
     access: "public",
     token: config.blobToken!,
     addRandomSuffix: false,
+    allowOverwrite: true,
     contentType,
   });
 
@@ -177,7 +178,7 @@ export async function writeIndexManifest(
 
   // Always write locally (backend's data.api.ts serves it)
   const filePath = path.join(config.outputDir, "meta", "index.json");
-  fs.writeFileSync(filePath, json);
+  await fs.promises.writeFile(filePath, json);
 
   const sizeKB = (Buffer.byteLength(json) / 1024).toFixed(1);
   console.log(`[Writer] index.json written locally (${sizeKB}KB)`);
