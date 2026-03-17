@@ -92,51 +92,61 @@ export async function writeProviderFiles(
     ensureOutputDirs();
   }
 
-  const entries: RegionManifestEntry[] = [];
+  const results = await Promise.all(
+    Array.from(regionFiles.entries()).map(async ([region, regionFile]) => {
+      // Compress (async — zstd-codec uses WASM)
+      const compressed = await compressRegionFile(regionFile);
+
+      const blobPath = `${provider}/${region}.msgpack.zst`;
+      let fileUrl: string;
+
+      if (isBlob) {
+        // ── Production: Upload to Vercel Blob CDN ──
+        fileUrl = await uploadToBlob(blobPath, compressed);
+        console.log(`  ☁ Uploaded ${blobPath} → ${fileUrl}`);
+      } else {
+        // ── Development: Write to local disk ──
+        const filePath = path.join(config.outputDir, blobPath);
+        fs.writeFileSync(filePath, compressed);
+        fileUrl = `/${blobPath}`;
+
+        // Also write JSON version for debugging (dev only)
+        if (config.nodeEnv === "development") {
+          const jsonPath = path.join(
+            config.outputDir,
+            provider,
+            `${region}.json`,
+          );
+          fs.writeFileSync(jsonPath, JSON.stringify(regionFile, null, 2));
+        }
+      }
+
+      // Stats
+      const jsonSize = Buffer.byteLength(JSON.stringify(regionFile));
+
+      // Return data for manifest and summary
+      return {
+        entry: {
+          id: region,
+          label: getRegionLabel(provider, region),
+          instanceCount: regionFile.count,
+          url: fileUrl,
+          sizeBytes: compressed.length,
+        },
+        jsonSize,
+        compressedSize: compressed.length,
+      };
+    }),
+  );
+
   let totalOriginal = 0;
   let totalCompressed = 0;
+  const entries: RegionManifestEntry[] = [];
 
-  for (const [region, regionFile] of regionFiles) {
-    // Compress (async — zstd-codec uses WASM)
-    const compressed = await compressRegionFile(regionFile);
-
-    const blobPath = `${provider}/${region}.msgpack.zst`;
-    let fileUrl: string;
-
-    if (isBlob) {
-      // ── Production: Upload to Vercel Blob CDN ──
-      fileUrl = await uploadToBlob(blobPath, compressed);
-      console.log(`  ☁ Uploaded ${blobPath} → ${fileUrl}`);
-    } else {
-      // ── Development: Write to local disk ──
-      const filePath = path.join(config.outputDir, blobPath);
-      await fs.promises.writeFile(filePath, compressed);
-      fileUrl = `/${blobPath}`;
-
-      // Also write JSON version for debugging (dev only)
-      if (config.nodeEnv === "development") {
-        const jsonPath = path.join(
-          config.outputDir,
-          provider,
-          `${region}.json`,
-        );
-        await fs.promises.writeFile(jsonPath, JSON.stringify(regionFile, null, 2));
-      }
-    }
-
-    // Stats
-    const jsonSize = Buffer.byteLength(JSON.stringify(regionFile));
-    totalOriginal += jsonSize;
-    totalCompressed += compressed.length;
-
-    // Build manifest entry
-    entries.push({
-      id: region,
-      label: getRegionLabel(provider, region),
-      instanceCount: regionFile.count,
-      url: fileUrl,
-      sizeBytes: compressed.length,
-    });
+  for (const res of results) {
+    totalOriginal += res.jsonSize;
+    totalCompressed += res.compressedSize;
+    entries.push(res.entry);
   }
 
   if (totalOriginal > 0) {
