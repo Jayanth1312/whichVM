@@ -15,6 +15,14 @@ const router = Router();
 let pipelineRunning = false;
 
 router.post("/cron/update", async (req: Request, res: Response) => {
+  if (process.env.NODE_ENV === "production") {
+    const authHeader = req.headers.authorization;
+    if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+  }
+
   if (pipelineRunning) {
     res.status(429).json({
       error: "Pipeline is already running",
@@ -54,6 +62,11 @@ router.post("/cron/update", async (req: Request, res: Response) => {
 
 // GET version for easy browser triggering during dev
 router.get("/cron/update", async (_req: Request, res: Response) => {
+  if (process.env.NODE_ENV === "production") {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
   if (pipelineRunning) {
     res.status(429).json({ error: "Pipeline is already running" });
     return;
