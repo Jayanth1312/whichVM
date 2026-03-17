@@ -110,7 +110,7 @@ export async function writeProviderFiles(
     } else {
       // ── Development: Write to local disk ──
       const filePath = path.join(config.outputDir, blobPath);
-      fs.writeFileSync(filePath, compressed);
+      await fs.promises.writeFile(filePath, compressed);
       fileUrl = `/${blobPath}`;
 
       // Also write JSON version for debugging (dev only)
@@ -120,7 +120,7 @@ export async function writeProviderFiles(
           provider,
           `${region}.json`,
         );
-        fs.writeFileSync(jsonPath, JSON.stringify(regionFile, null, 2));
+        await fs.promises.writeFile(jsonPath, JSON.stringify(regionFile, null, 2));
       }
     }
 
@@ -168,7 +168,7 @@ export async function writeIndexManifest(
 
   // Always write locally (backend's data.api.ts serves it)
   const filePath = path.join(config.outputDir, "meta", "index.json");
-  fs.writeFileSync(filePath, json);
+  await fs.promises.writeFile(filePath, json);
 
   const sizeKB = (Buffer.byteLength(json) / 1024).toFixed(1);
   console.log(`[Writer] index.json written locally (${sizeKB}KB)`);
