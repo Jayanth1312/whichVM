@@ -39,13 +39,11 @@ async function main() {
   console.log("╚══════════════════════════════════════════════════╝\n");
 
   try {
-    // 1-3. Sync all providers in parallel
-    console.log("\n[CronRunner] 🚀 Syncing all providers in parallel...");
-    await Promise.all([
-      execScript("sync-aws.js"),
-      execScript("sync-azure.js"),
-      execScript("sync-gcp.js"),
-    ]);
+    // 1-3. Sync all providers sequentially
+    console.log("\n[CronRunner] 🚀 Syncing all providers sequentially...");
+    await execScript("sync-gcp.js");
+    await execScript("sync-aws.js");
+    await execScript("sync-azure.js");
 
     // 4. Run Pipeline Orchestrator (Compress & Upload to Blob)
     console.log("\n── ORCHESTRATOR ──────────────────────────────");

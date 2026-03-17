@@ -4,6 +4,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { GlobalSearch } from "@/components/ui/global-search";
+import { AmazonWebServices } from "@/app/icons/amazonIcon";
+import { MicrosoftAzure } from "@/app/icons/azureIcon";
+import { GoogleCloud } from "@/app/icons/gcpIcon";
 
 const providers = ["AWS", "Azure", "GCP"];
 
@@ -25,11 +29,11 @@ export function Header({ activeProvider: propActiveProvider }: HeaderProps) {
   // Detect provider from URL (e.g., /aws/us-east-1 -> AWS)
   const detectedProvider = React.useMemo(() => {
     let p: string | undefined = pathname.split("/")[1]?.toLowerCase();
-    
+
     if (pathname === "/compare") {
       p = searchParams.get("provider")?.toLowerCase();
     }
-    
+
     if (p === "aws") return "AWS";
     if (p === "gcp") return "GCP";
     if (p === "azure") return "Azure";
@@ -68,7 +72,7 @@ export function Header({ activeProvider: propActiveProvider }: HeaderProps) {
   };
 
   useEffect(() => {
-    const SCROLL_IN_THRESHOLD = 50;
+    const SCROLL_IN_THRESHOLD = 90;
     const SCROLL_OUT_THRESHOLD = 10;
 
     const handleScroll = () => {
@@ -163,6 +167,36 @@ export function Header({ activeProvider: propActiveProvider }: HeaderProps) {
           </svg>
         </div>
 
+        {/* Global Search & Compare Button - Top Right Absolute Position */}
+        <div
+          className="absolute right-4 sm:right-6 top-3 flex items-center gap-3 z-30 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+          style={{
+            transform: isScrolled ? "translateY(-4px)" : "translateY(0px)",
+          }}
+        >
+          <GlobalSearch />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/compare")}
+            className="h-10 gap-2.5 pl-1.5 pr-4 rounded-full border border-neutral-800! transition-colors cursor-pointer flex items-center bg-black/50 hover:bg-neutral-900/75!"
+          >
+            <div className="flex items-center -space-x-2.5">
+              <div className="w-7 h-7 rounded-full bg-[#0a0a0a] border border-neutral-800 flex items-center justify-center p-1.5 overflow-hidden">
+                <AmazonWebServices className="w-full h-full" />
+              </div>
+              <div className="w-7 h-7 rounded-full bg-[#0a0a0a] border border-neutral-800 flex items-center justify-center p-1.5 overflow-hidden">
+                <MicrosoftAzure className="w-full h-full" />
+              </div>
+              <div className="w-7 h-7 rounded-full bg-[#0a0a0a] border border-neutral-800 flex items-center justify-center p-1.5 overflow-hidden">
+                <GoogleCloud className="w-full h-full" />
+              </div>
+            </div>
+            <span className="text-[14px] font-semibold text-white">
+              Compare
+            </span>
+          </Button>
+        </div>
 
         <div
           className={cn(
@@ -189,7 +223,7 @@ export function Header({ activeProvider: propActiveProvider }: HeaderProps) {
         </div>
 
         {/* Bottom Row: Navigation + Persistent Elements */}
-        <nav className="flex h-14 items-center px-4 sm:px-6 relative">
+        <nav className="flex h-14 items-center justify-between px-4 sm:px-6 relative">
           <div className="flex items-center h-full">
             <div
               className="flex items-center transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
@@ -216,10 +250,21 @@ export function Header({ activeProvider: propActiveProvider }: HeaderProps) {
                 >
                   <span
                     className={cn(
-                      "rounded-md px-4 py-2 transition-colors",
-                      localActive === provider ? "bg-neutral-900 text-white" : "hover:bg-neutral-900",
+                      "rounded-md px-3 py-2 transition-colors flex items-center gap-1.5",
+                      localActive === provider
+                        ? "bg-neutral-900 text-white"
+                        : "hover:bg-neutral-900",
                     )}
                   >
+                    {provider.toLowerCase() === "aws" && (
+                      <AmazonWebServices className="w-4 h-4" />
+                    )}
+                    {provider.toLowerCase() === "azure" && (
+                      <MicrosoftAzure className="w-4 h-4" />
+                    )}
+                    {provider.toLowerCase() === "gcp" && (
+                      <GoogleCloud className="w-4 h-4" />
+                    )}
                     {provider}
                   </span>
                 </button>

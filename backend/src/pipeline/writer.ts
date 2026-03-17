@@ -39,6 +39,7 @@ async function uploadToBlob(
     access: "public",
     token: config.blobToken!,
     addRandomSuffix: false,
+    allowOverwrite: true,
     contentType,
   });
 

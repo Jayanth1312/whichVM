@@ -7,6 +7,7 @@ import { decode } from "@msgpack/msgpack";
 import Link from "next/link";
 import {
   ArrowLeft,
+  ArrowRight,
   ChevronDown,
   ChevronRight,
   Check,
@@ -437,6 +438,10 @@ export function InstanceDetail({
       </div>
     );
 
+  const currentIndex = allInstances.findIndex((inst) => inst.n === instanceName);
+  const prevInstance = currentIndex > 0 ? allInstances[currentIndex - 1] : null;
+  const nextInstance = currentIndex < allInstances.length - 1 ? allInstances[currentIndex + 1] : null;
+
   const memoryPerVCPU = (instance.m / instance.v).toFixed(1);
   const familySiblings = allInstances
     .filter(
@@ -499,20 +504,16 @@ export function InstanceDetail({
         <Breadcrumb className="mb-4">
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink
-                href="/"
-                className="text-neutral-500 hover:text-white transition-colors text-[13px] font-medium"
-              >
-                Instances
+              <BreadcrumbLink asChild className="text-neutral-500 hover:text-white transition-colors text-[13px] font-medium">
+                <Link href="/">Instances</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-neutral-800" />
             <BreadcrumbItem>
-              <BreadcrumbLink
-                href={`/${provider.toLowerCase()}/${region}`}
-                className="text-neutral-500 hover:text-white transition-colors text-[13px] font-medium capitalize"
-              >
-                {provider} {provider === "AWS" ? "EC2" : "Compute"}
+              <BreadcrumbLink asChild className="text-neutral-500 hover:text-white transition-colors text-[13px] font-medium capitalize">
+                <Link href={`/${provider.toLowerCase()}/${region}`}>
+                  {provider} {provider === "AWS" ? "EC2" : "Compute"}
+                </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-neutral-800" />
@@ -806,6 +807,37 @@ export function InstanceDetail({
             })}
           />
         </div>
+      </div>
+
+      {/* Pagination Footer */}
+      <div className="flex items-center justify-between mt-12 pt-6 border-t border-neutral-800/60">
+        {prevInstance ? (
+          <Link
+            href={`/${provider.toLowerCase()}/${region}/instance/${encodeURIComponent(prevInstance.n)}`}
+            className="inline-flex items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900/40 px-4 py-2 text-sm font-medium text-neutral-300 hover:bg-neutral-800 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {isAzure && prevInstance.f
+              ? prevInstance.f.replace(/_/g, " ")
+              : prevInstance.n.replace(/_/g, " ")}
+          </Link>
+        ) : (
+          <div />
+        )}
+
+        {nextInstance ? (
+          <Link
+            href={`/${provider.toLowerCase()}/${region}/instance/${encodeURIComponent(nextInstance.n)}`}
+            className="inline-flex items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900/40 px-4 py-2 text-sm font-medium text-neutral-300 hover:bg-neutral-800 transition-colors"
+          >
+            {isAzure && nextInstance.f
+              ? nextInstance.f.replace(/_/g, " ")
+              : nextInstance.n.replace(/_/g, " ")}
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        ) : (
+          <div />
+        )}
       </div>
     </div>
   );

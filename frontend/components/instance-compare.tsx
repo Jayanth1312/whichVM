@@ -8,6 +8,7 @@ import React, {
   useMemo,
 } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   Search,
   X,
@@ -26,6 +27,9 @@ import {
   Server,
   Info,
 } from "lucide-react";
+import { AmazonWebServices } from "@/app/icons/amazonIcon";
+import { MicrosoftAzure } from "@/app/icons/azureIcon";
+import { GoogleCloud } from "@/app/icons/gcpIcon";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -190,6 +194,8 @@ interface MappedInstance {
   linuxOnDemand: string;
   linuxSpot: string;
   windowsOnDemand: string;
+  pr?: Record<string, number>;
+  provider: string;
 }
 
 interface FullInstanceDetail {
@@ -215,6 +221,7 @@ function mapRawInstance(
 
   return {
     id: `${provider}-${region}-${index}`,
+    provider,
     name: isAzure && item.f ? item.f.replace(/_/g, " ") : (item.n || ""),
     apiName: item.n || "",
     family: item.f || "",
@@ -259,13 +266,18 @@ function formatDetailValue(value: any): string {
 
 function getPricingValue(
   detail: FullInstanceDetail | null,
+  instance: MappedInstance | null | undefined,
   region: string,
   key: string,
 ): number | null {
-  if (!detail?.pricing) return null;
-  const regionPricing = detail.pricing[region] || detail.pricing[Object.keys(detail.pricing)[0]];
-  if (!regionPricing) return null;
-  return regionPricing[key] ?? null;
+  if (detail?.pricing) {
+    const regionPricing = detail.pricing[region] || detail.pricing[Object.keys(detail.pricing)[0]];
+    if (regionPricing && regionPricing[key] != null) return regionPricing[key];
+  }
+  if (instance?.pr && instance.pr[key] != null) {
+     return instance.pr[key];
+  }
+  return null;
 }
 
 function calculateCost(
@@ -284,10 +296,9 @@ function calculateCost(
     minutes: 1 / 60,
     hourly: 1,
     weekly: 24 * 7,
-    monthly: (24 * 730) / 168, // Roughly 730 hours in a month
+    monthly: (24 * 730) / 168,
     yearly: 24 * 365,
   };
-  // Use 730 as standard month like in previous implementation
   multipliers.monthly = 730;
 
   const mult = multipliers[interval] || 1;
@@ -330,7 +341,10 @@ function calculateCost(
 
 interface FullSpec {
   label: string;
-  getValue: (detail: FullInstanceDetail | null) => string;
+  getValue: (
+    detail: FullInstanceDetail | null,
+    instance?: MappedInstance | null,
+  ) => string;
   isPrice?: boolean;
 }
 
@@ -347,6 +361,7 @@ function buildSectionGroups(
   unit: string,
   currency: string,
   plan: string,
+  azureHybridBenefit?: string,
 ): FullSectionGroup[] {
   const isAws = provider.toLowerCase() === "aws";
   const isAzure = provider.toLowerCase() === "azure";
@@ -367,33 +382,36 @@ function buildSectionGroups(
       specs: [
         {
           label: "Instance Type",
-          getValue: (d) => {
-            const val = getDetailValue(d, "instanceType");
-            return isAzure && getDetailValue(d, "instanceFamily")
-              ? formatDetailValue(getDetailValue(d, "instanceFamily")).replace(/_/g, " ")
-              : formatDetailValue(val);
+          getValue: (d, i) => {
+            if (d) {
+              const val = getDetailValue(d, "instanceType");
+              return isAzure && getDetailValue(d, "instanceFamily")
+                ? formatDetailValue(getDetailValue(d, "instanceFamily")).replace(/_/g, " ")
+                : formatDetailValue(val);
+            }
+            return i ? i.name : "—";
           },
         },
         ...(!isAzure
           ? [
               {
                 label: "Instance Family",
-                getValue: (d: any) =>
-                  formatDetailValue(getDetailValue(d, "instanceFamily")),
+                getValue: (d: any, i: any) =>
+                  d ? formatDetailValue(getDetailValue(d, "instanceFamily")) : (i?.family || "—"),
               },
             ]
           : []),
         {
           label: "vCPUs",
-          getValue: (d) => formatDetailValue(getDetailValue(d, "vCPUs")),
+          getValue: (d, i) => d ? formatDetailValue(getDetailValue(d, "vCPUs")) : (i?.vcpus || "—"),
         },
         {
           label: "Processor",
-          getValue: (d) => formatDetailValue(getDetailValue(d, "processor")),
+          getValue: (d, i) => d ? formatDetailValue(getDetailValue(d, "processor")) : (i?.processor || "—"),
         },
         {
           label: "Architecture",
-          getValue: (d) => formatDetailValue(getDetailValue(d, "architecture")),
+          getValue: (d, i) => d ? formatDetailValue(getDetailValue(d, "architecture")) : (i?.architecture?.toUpperCase() || "—"),
         },
         {
           label: "Clock Speed (GHz)",
@@ -440,20 +458,22 @@ function buildSectionGroups(
       specs: [
         {
           label: "Total RAM",
-          getValue: (d) => {
+          getValue: (d, i) => {
             const mem = getDetailValue(d, "memoryGiB");
-            return mem != null ? `${mem} GiB` : "—";
+            if (mem != null) return `${mem} GiB`;
+            return i?.memory || "—";
           },
         },
         {
           label: "RAM per vCPU",
-          getValue: (d) => {
+          getValue: (d, i) => {
             const mem = getDetailValue(d, "memoryPerVCPU");
             if (mem != null) return `${mem} GiB`;
             const totalMem = getDetailValue(d, "memoryGiB");
             const vcpus = getDetailValue(d, "vCPUs");
             if (totalMem && vcpus)
               return `${(totalMem / vcpus).toFixed(1)} GiB`;
+            if (i?.memoryPerVCPU) return i.memoryPerVCPU;
             return "—";
           },
         },
@@ -465,7 +485,7 @@ function buildSectionGroups(
       specs: [
         {
           label: "Instance Storage",
-          getValue: (d) => formatDetailValue(getDetailValue(d, "storage")),
+          getValue: (d, i) => d ? formatDetailValue(getDetailValue(d, "storage")) : (i?.storage || "—"),
         },
         {
           label: "EBS Optimized",
@@ -502,10 +522,10 @@ function buildSectionGroups(
       specs: [
         {
           label: "Network Perf",
-          getValue: (d) =>
-            formatDetailValue(
-              getDetailValue(d, "network") ?? getDetailValue(d, "bandwidth"),
-            ),
+          getValue: (d, i) =>
+            d
+              ? formatDetailValue(getDetailValue(d, "network") ?? getDetailValue(d, "bandwidth"))
+              : (i?.network || "—"),
         },
         {
           label: "Max Interfaces",
@@ -668,12 +688,20 @@ function buildSectionGroups(
 
   const getFormattedPrice = (
     detail: FullInstanceDetail | null,
+    instance: MappedInstance | null | undefined,
     key: string,
   ) => {
-    if (!detail) return "—";
-    const baseCost = getPricingValue(detail, region, key);
-    const vcpus = getDetailValue(detail, "vCPUs") || 1;
-    const memory = getDetailValue(detail, "memoryGiB") || 1;
+    const baseCost = getPricingValue(detail, instance, region, key);
+    if (baseCost == null) return "—";
+
+    const vcpus = detail 
+      ? (getDetailValue(detail, "vCPUs") || 1) 
+      : (instance?.vcpus ? parseFloat(instance.vcpus) : 1);
+      
+    const memory = detail 
+      ? (getDetailValue(detail, "memoryGiB") || 1) 
+      : (instance?.memory ? parseFloat(instance.memory) : 1);
+
     return calculateCost(baseCost, vcpus, memory, interval, unit, currency);
   };
 
@@ -726,54 +754,101 @@ function buildSectionGroups(
     }
   }
 
-  const isAzureHB = isAzure && plan.endsWith("_hb");
+  if (isAws) {
+    pricingSection.specs = [
+      {
+        label: "Linux On Demand",
+        isPrice: true,
+        getValue: (d, i) => {
+          const p = getFormattedPrice(d, i, "linuxOnDemand");
+          if (p !== "—") return p;
+          return getFormattedPrice(d, i, "linux_payasyougo");
+        },
+      },
+      {
+        label: "Linux Spot",
+        isPrice: true,
+        getValue: (d, i) => {
+          const p1 = getFormattedPrice(d, i, "linuxSpot");
+          if (p1 !== "—") return p1;
+          const p2 = getFormattedPrice(d, i, "linux_spot");
+          if (p2 !== "—") return p2;
+          return getFormattedPrice(d, i, "ubuntu_spot");
+        },
+      },
+      {
+        label: "Windows On Demand",
+        isPrice: true,
+        getValue: (d, i) => {
+          const p = getFormattedPrice(d, i, "windowsOnDemand");
+          if (p !== "—") return p;
+          return getFormattedPrice(d, i, "windows_payasyougo");
+        },
+      },
+      {
+        label: "Windows Spot",
+        isPrice: true,
+        getValue: (d, i) => {
+          const p = getFormattedPrice(d, i, "windowsSpot");
+          if (p !== "—") return p;
+          return getFormattedPrice(d, i, "windows_spot");
+        },
+      },
+    ];
+  } else if (isAzure) {
+    const isHB = azureHybridBenefit === "Yes";
+    const costType = plan; // payasyougo, reserved1y, etc.
+    const getAzureKey = (base: string) => `${base}_${costType}`;
 
-  pricingSection.specs = [
-    {
-      label: "On Demand Price (Linux)",
-      isPrice: true,
-      getValue: (d) =>
-        getFormattedPrice(d, "linuxOnDemand") ||
-        getFormattedPrice(d, "linux_payasyougo"),
-    },
-    {
-      label: `${isAws ? "Reserved/Savings" : isAzure ? "Reserved" : "Commitment"} Cost (Linux)`,
-      isPrice: true,
-      getValue: (d) => getFormattedPrice(d, linuxReservedKey),
-    },
-    {
-      label: "Spot Cost (Linux)",
-      isPrice: true,
-      getValue: (d) =>
-        getFormattedPrice(d, "linuxSpot") ||
-        getFormattedPrice(d, "linux_spot") ||
-        getFormattedPrice(d, "ubuntu_spot"),
-    },
-    {
-      label: "On Demand Price (Windows)",
-      isPrice: true,
-      getValue: (d) =>
-        isAzureHB
-          ? getFormattedPrice(d, "linuxOnDemand") || getFormattedPrice(d, "linux_payasyougo")
-          : getFormattedPrice(d, "windowsOnDemand") ||
-            getFormattedPrice(d, "windows_payasyougo"),
-    },
-    {
-      label: `${isAws ? "Reserved/Savings" : isAzure ? "Reserved" : "Commitment"} Cost (Windows)`,
-      isPrice: true,
-      getValue: (d) =>
-        isAzureHB
-          ? getFormattedPrice(d, linuxReservedKey)
-          : getFormattedPrice(d, windowsReservedKey),
-    },
-    {
-      label: "Spot Cost (Windows)",
-      isPrice: true,
-      getValue: (d) =>
-        getFormattedPrice(d, "windowsSpot") ||
-        getFormattedPrice(d, "windows_spot"),
-    },
-  ];
+    pricingSection.specs = [
+      {
+        label: "Linux Cost",
+        isPrice: true,
+        getValue: (d, i) => getFormattedPrice(d, i, getAzureKey("linux")),
+      },
+      {
+        label: "Windows Cost",
+        isPrice: true,
+        getValue: (d, i) => getFormattedPrice(d, i, isHB ? getAzureKey("linux") : getAzureKey("windows")),
+      },
+      {
+        label: "RHEL Cost",
+        isPrice: true,
+        getValue: (d, i) => getFormattedPrice(d, i, getAzureKey("rhel")),
+      },
+      {
+        label: "Ubuntu Cost",
+        isPrice: true,
+        getValue: (d, i) => getFormattedPrice(d, i, getAzureKey("ubuntu")),
+      },
+      {
+        label: "SLES Cost",
+        isPrice: true,
+        getValue: (d, i) => getFormattedPrice(d, i, getAzureKey("sles")),
+      },
+    ];
+  } else if (isGcp) {
+    let linuxKey = "linuxOnDemand";
+    if (plan === "sustained") {
+      linuxKey = "linuxSustainedDiscounts100";
+    } else if (plan === "spot") {
+      linuxKey = "linuxSpot";
+    } else if (plan === "commit_1y") {
+      linuxKey = "linuxCommit1Yr";
+    } else if (plan === "commit_3y") {
+      linuxKey = "linuxCommit3Yr";
+    }
+
+    pricingSection.specs = [
+      {
+        label: "Instance Price",
+        isPrice: true,
+        getValue: (d, i) => getFormattedPrice(d, i, linuxKey),
+      },
+    ];
+  } else {
+    pricingSection.specs = [];
+  }
 
   return groups.filter((g) => g.specs.length > 0 || g.title === "PRICING");
 }
@@ -871,14 +946,18 @@ function InstanceSearchColumn({
                     }}
                     className="w-full text-left px-4 py-3 hover:bg-neutral-800/80 transition-colors border-b border-neutral-800/50 last:border-b-0 cursor-pointer"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 flex items-center justify-center">
+                        {match.provider === "aws" && <AmazonWebServices className="w-4 h-4" />}
+                        {match.provider === "azure" && <MicrosoftAzure className="w-4 h-4" />}
+                        {match.provider === "gcp" && <GoogleCloud className="w-4 h-4" />}
+                      </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-bold text-white truncate">
                           {match.name}
                         </div>
                         <div className="text-[11px] text-neutral-500 mt-0.5">
-                          {match.vcpus} vCPUs · {match.memory} ·{" "}
-                          {match.processor}
+                          {match.vcpus} vCPUs · {match.memory}
                         </div>
                       </div>
                       {match.linuxOnDemand !== "-" && (
@@ -942,6 +1021,7 @@ export function ComparePage() {
   const [currency, setCurrency] = useState("usd");
   const [pricingUnit, setPricingUnit] = useState("instance");
   const [reservedPlan, setReservedPlan] = useState("");
+  const [azureHybridBenefit, setAzureHybridBenefit] = useState("No");
 
   const [isRestored, setIsRestored] = useState(false);
 
@@ -953,6 +1033,7 @@ export function ComparePage() {
       if (saved.currency) setCurrency(saved.currency);
       if (saved.pricingUnit) setPricingUnit(saved.pricingUnit);
       if (saved.reservedPlan) setReservedPlan(saved.reservedPlan);
+      if (saved.azureHybridBenefit) setAzureHybridBenefit(saved.azureHybridBenefit);
     }
     setIsRestored(true);
   }, [provider]);
@@ -965,6 +1046,7 @@ export function ComparePage() {
       currency,
       pricingUnit,
       reservedPlan,
+      azureHybridBenefit,
     });
   }, [pricingInterval, currency, pricingUnit, reservedPlan, provider, isRestored]);
 
@@ -981,6 +1063,7 @@ export function ComparePage() {
     setPricingInterval("hourly");
     setCurrency("usd");
     setPricingUnit("instance");
+    setAzureHybridBenefit("No");
     const p = provider.toUpperCase();
     if (p === "AWS") setReservedPlan("payasyougo");
     else if (p === "AZURE") setReservedPlan("payasyougo");
@@ -989,10 +1072,10 @@ export function ComparePage() {
 
   // Fetch full detail from MongoDB
   const fetchInstanceDetail = useCallback(
-    async (instanceName: string, idx: number) => {
+    async (instanceName: string, p: string, idx: number) => {
       try {
         const response = await fetch(
-          `/api/instances/${provider.toLowerCase()}/${encodeURIComponent(instanceName)}`,
+          `/api/instances/${p.toLowerCase()}/${encodeURIComponent(instanceName)}`,
         );
         if (response.ok) {
           const detail = await response.json();
@@ -1006,38 +1089,52 @@ export function ComparePage() {
         console.warn(`Error fetching detail for ${instanceName}:`, err);
       }
     },
-    [provider],
+    [],
   );
 
-  // Load bulk region data
+  // Load bulk region data for all providers
   useEffect(() => {
     let cancelled = false;
     async function fetchData() {
       setIsLoading(true);
+      const providers = ["aws", "azure", "gcp"];
+      const masterList: MappedInstance[] = [];
+
       try {
-        const url = `${API_BASE}/${provider.toLowerCase()}/${region}.msgpack.zst`;
-        const response = await cachedFetch(url);
-        const buf = await response.arrayBuffer();
-        const decompressed = zstdDecompress(new Uint8Array(buf));
-        const decoded: any = decode(decompressed);
-        const items = decoded.instances || [];
+        const promises = providers.map(async (p) => {
+          const d_regs: Record<string, string> = { aws: "us-east-1", azure: "eastus", gcp: "us-central1" };
+          const r = d_regs[p];
+          try {
+            const url = `${API_BASE}/${p}/${r}.msgpack.zst`;
+            const response = await cachedFetch(url);
+            if (!response.ok) return;
+
+            const buf = await response.arrayBuffer();
+            const decompressed = zstdDecompress(new Uint8Array(buf));
+            const decoded: any = decode(decompressed);
+            if (decoded?.instances) {
+              decoded.instances.forEach((item: any, i: number) => {
+                masterList.push(mapRawInstance(item, p, r, i));
+              });
+            }
+          } catch (e) {}
+        });
+
+        await Promise.all(promises);
 
         if (!cancelled) {
-          const mapped: MappedInstance[] = items.map((item: any, i: number) =>
-            mapRawInstance(item, provider, region, i),
-          );
-          setAllData(mapped);
+          setAllData(masterList);
 
           if (initialInstanceNames.length > 0) {
             const newInstances: (MappedInstance | null)[] = [null, null, null];
             initialInstanceNames.forEach((name, idx) => {
-              const found = mapped.find(
+              const found = masterList.find(
                 (m: MappedInstance) =>
                   m.apiName.toLowerCase() === name.toLowerCase(),
               );
               if (found && idx < 3) {
                 newInstances[idx] = found;
-                fetchInstanceDetail(found.apiName, idx);
+                fetchInstanceDetail(found.apiName, found.provider, idx);
               }
             });
             setInstances(newInstances);
@@ -1053,7 +1150,7 @@ export function ComparePage() {
     return () => {
       cancelled = true;
     };
-  }, [provider, region, fetchInstanceDetail]);
+  }, [fetchInstanceDetail]);
 
   const handleSelectInstance = useCallback(
     (idx: number, inst: MappedInstance) => {
@@ -1062,7 +1159,7 @@ export function ComparePage() {
         next[idx] = inst;
         return next;
       });
-      fetchInstanceDetail(inst.apiName, idx);
+      fetchInstanceDetail(inst.apiName, inst.provider, idx);
     },
     [fetchInstanceDetail],
   );
@@ -1093,8 +1190,9 @@ export function ComparePage() {
         pricingUnit,
         currency,
         reservedPlan,
+        azureHybridBenefit,
       ),
-    [provider, region, pricingInterval, pricingUnit, currency, reservedPlan],
+    [provider, region, pricingInterval, pricingUnit, currency, reservedPlan, azureHybridBenefit],
   );
 
   const SERVICE_NAMES: Record<string, string> = {
@@ -1112,11 +1210,8 @@ export function ComparePage() {
             <Breadcrumb className="mb-4">
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink
-                    href="/"
-                    className="text-neutral-500 hover:text-white transition-colors text-[13px] font-medium"
-                  >
-                    Instances
+                  <BreadcrumbLink asChild className="text-neutral-500 hover:text-white transition-colors text-[13px] font-medium">
+                    <Link href="/">Instances</Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="text-neutral-800" />
@@ -1232,8 +1327,8 @@ export function ComparePage() {
                     compareMode === "diff" && filledCount > 1
                       ? section.specs.filter((spec) => {
                           const values = activeDetails
-                            .filter((_, idx) => activeColumns[idx] !== null)
-                            .map((d) => spec.getValue(d));
+                            .map((d, idx) => activeColumns[idx] ? spec.getValue(d, activeColumns[idx]) : "—")
+                            .filter((_, idx) => activeColumns[idx] !== null);
                           return !values.every((v) => v === values[0]);
                         })
                       : section.specs;
@@ -1255,23 +1350,25 @@ export function ComparePage() {
                         <td colSpan={columnCount} className="px-6 py-3">
                           {section.title === "PRICING" && (
                             <div className="flex flex-wrap items-center gap-6">
-                              <div className="flex flex-col gap-1.5 min-w-[180px]">
-                                <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest ml-1">
-                                  {COMMITMENT_LABELS[provider.toUpperCase()] ||
-                                    "Plan"}
-                                </span>
-                                <FilterDropdown
-                                  label="Plan"
-                                  value={reservedPlan}
-                                  options={
-                                    COMMITMENT_OPTIONS[
-                                      provider.toUpperCase()
-                                    ] || []
-                                  }
-                                  onSelect={setReservedPlan}
-                                  className="h-9"
-                                />
-                              </div>
+                              {/* Plan filters removed */}
+
+                              {provider.toUpperCase() === "AZURE" && (
+                                <div className="flex flex-col gap-1.5 min-w-[140px]">
+                                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest ml-1">
+                                    Hybrid Benefit
+                                  </span>
+                                  <FilterDropdown
+                                    label="Hybrid Benefit"
+                                    value={azureHybridBenefit}
+                                    options={[
+                                      { value: "No", label: "No" },
+                                      { value: "Yes", label: "Yes" },
+                                    ]}
+                                    onSelect={setAzureHybridBenefit}
+                                    className="h-9"
+                                  />
+                                </div>
+                              )}
 
                               <div className="flex flex-col gap-1.5 min-w-[140px]">
                                 <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest ml-1">
@@ -1312,10 +1409,13 @@ export function ComparePage() {
                                 />
                               </div>
 
-                              <div className="flex items-end pb-1.5 h-full">
+                              <div className="flex flex-col gap-1.5">
+                                <span className="text-[10px] font-bold text-transparent select-none uppercase tracking-widest ml-1">
+                                  Spacing
+                                </span>
                                 <button
                                   onClick={clearFilters}
-                                  className="text-xs font-bold text-blue-500 hover:text-blue-400 transition-colors cursor-pointer"
+                                  className="text-xs font-bold text-blue-500 hover:text-blue-400 transition-colors cursor-pointer h-9 flex items-center"
                                 >
                                   Clear Filters
                                 </button>
@@ -1327,7 +1427,7 @@ export function ComparePage() {
 
                       {filteredSpecs.map((spec, specIdx) => {
                         const values = activeDetails.map((d, idx) =>
-                          activeColumns[idx] ? spec.getValue(d) : "—",
+                          activeColumns[idx] ? spec.getValue(d, activeColumns[idx]) : "—",
                         );
                         return (
                           <tr

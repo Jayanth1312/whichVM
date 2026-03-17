@@ -72,6 +72,7 @@ export interface PersistedFilterState {
   currency?: string;
   pricingUnit?: string;
   reservedPlan?: string;
+  azureHybridBenefit?: string;
   columnFilters?: { id: string; value: unknown }[];
   sorting?: { id: string; desc: boolean }[];
   columnVisibility?: Record<string, boolean>;

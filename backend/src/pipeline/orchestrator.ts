@@ -16,6 +16,8 @@ import { closeDB } from "../config/db";
 import { config } from "../config";
 import { writeProviderFiles, writeIndexManifest } from "./writer";
 import { pushToMongo } from "./mongo-pusher";
+import * as fs from "fs";
+import * as path from "path";
 import {
   IndexManifest,
   Provider,
@@ -55,7 +57,29 @@ export async function runPipeline(
   console.log("║      WhichVM Pipeline — Build Started            ║");
   console.log("╚══════════════════════════════════════════════════╝\n");
 
-  const manifestProviders: Record<string, ProviderManifest> = {};
+  // Load existing manifest to preserve other providers if running partial pipeline
+  let existingManifest: IndexManifest | null = null;
+  if (config.blobToken) {
+    try {
+      const response = await fetch(`${config.blobCdnUrl}/meta/index.json`);
+      if (response.ok) {
+        existingManifest = await response.json() as IndexManifest;
+        console.log(`[Pipeline] Loaded existing manifest from Blob CDN`);
+      }
+    } catch (err) {
+      console.warn(`[Pipeline] Failed to load manifest from Blob CDN:`, err);
+    }
+  } else {
+    const filePath = path.join(config.outputDir, "meta", "index.json");
+    if (fs.existsSync(filePath)) {
+      try {
+        existingManifest = JSON.parse(fs.readFileSync(filePath, "utf8"));
+        console.log(`[Pipeline] Loaded existing manifest from local disk`);
+      } catch {}
+    }
+  }
+
+  const manifestProviders: Record<string, ProviderManifest> = existingManifest?.providers || {};
 
   for (const provider of providers) {
     try {
