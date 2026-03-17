@@ -707,18 +707,12 @@ export function InstanceDetail({
                         className={`hover:bg-neutral-900/20 ${sib.n === instanceName ? "bg-blue-500/5" : ""}`}
                       >
                         <td className="px-4 py-2.5">
-                          {sib.n === instanceName ? (
-                            <span className="text-white font-bold">
-                              {sib.n}
-                            </span>
-                          ) : (
-                            <Link
-                              href={`/${provider.toLowerCase()}/${region}/instance/${encodeURIComponent(sib.n)}`}
-                              className="text-blue-400 hover:text-blue-300 font-medium"
-                            >
-                              {sib.n}
-                            </Link>
-                          )}
+                          <Link
+                            href={`/${provider.toLowerCase()}/${region}/instance/${encodeURIComponent(sib.n)}`}
+                            className={`font-medium transition-colors ${sib.n === instanceName ? "text-white font-bold" : "text-blue-400 hover:text-blue-300"}`}
+                          >
+                            {sib.n}
+                          </Link>
                         </td>
                         <td className="px-4 py-2.5 text-neutral-300 font-mono">
                           {sib.v}

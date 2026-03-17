@@ -31,6 +31,8 @@ jobs:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           DB_NAME: ${{ secrets.DB_NAME }}
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          BLOB_CDN_URL: ${{ secrets.BLOB_CDN_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
           CLOUDPRICE_AWS_KEY: ${{ secrets.CLOUDPRICE_AWS_KEY }}
           CLOUDPRICE_AZURE_KEY: ${{ secrets.CLOUDPRICE_AZURE_KEY }}
           CLOUDPRICE_GCP_KEY: ${{ secrets.CLOUDPRICE_GCP_KEY }}
