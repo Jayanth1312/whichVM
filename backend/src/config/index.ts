@@ -18,4 +18,5 @@ export const config = {
 
   // Vercel Blob (production only)
   blobToken: process.env.BLOB_READ_WRITE_TOKEN,
+  blobCdnUrl: process.env.BLOB_CDN_URL || "",
 };

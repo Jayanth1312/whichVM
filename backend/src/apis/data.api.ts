@@ -16,26 +16,54 @@ import { config } from "../config";
 
 const router = Router();
 
+// Helper: Fetch from CDN and proxy response
+async function proxyFromCdn(req: Request, res: Response, cdnUrl: string): Promise<void> {
+  try {
+    const response = await fetch(cdnUrl);
+    if (!response.ok) {
+      res.status(response.status).json({ error: "CDN fetch failed" });
+      return;
+    }
+
+    // Copy headers
+    const contentType = response.headers.get("content-type");
+    if (contentType) res.setHeader("Content-Type", contentType);
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    res.send(buffer);
+  } catch (error) {
+    console.error("[CDN Proxy] Error:", error);
+    res.status(500).json({ error: "CDN proxy error" });
+  }
+}
+
 // Serve index.json
-router.get("/data/meta/index.json", (_req: Request, res: Response) => {
+router.get("/data/meta/index.json", async (_req: Request, res: Response) => {
   const filePath = path.join(config.outputDir, "meta", "index.json");
 
-  if (!fs.existsSync(filePath)) {
-    res.status(404).json({
-      error: "index.json not found",
-      hint: "Run the pipeline first: GET /api/cron/update",
-    });
+  // 1. Production Mode: Default straight to Vercel Blob CDN
+  if (config.blobToken) {
+    const baseCdn = config.blobCdnUrl || "https://awi0ptjauiy6qiis.public.blob.vercel-storage.com";
+    const cdnUrl = `${baseCdn}/meta/index.json`;
+    await proxyFromCdn(_req, res, cdnUrl);
     return;
   }
 
-  res.setHeader("Content-Type", "application/json");
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Cache-Control", "no-store");
-  res.sendFile(path.resolve(filePath));
+  // 2. Development Mode: Fallback to local disk
+  if (fs.existsSync(filePath)) {
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cache-Control", "no-store");
+    res.sendFile(path.resolve(filePath));
+    return;
+  }
+
+  res.status(404).json({ error: "File not found" });
 });
 
 // Serve provider region files
-router.get("/data/:provider/:file", (req: Request, res: Response) => {
+router.get("/data/:provider/:file", async (req: Request, res: Response) => {
   const provider = req.params.provider as string;
   const file = req.params.file as string;
 
@@ -53,30 +81,32 @@ router.get("/data/:provider/:file", (req: Request, res: Response) => {
     return;
   }
 
-  if (!fs.existsSync(filePath)) {
-    res.status(404).json({
-      error: "File not found",
-      path: `${provider}/${safeFile}`,
-      hint: "Run the pipeline first: GET /api/cron/update",
-    });
+  // 1. Production Mode: Default straight to Vercel Blob CDN
+  if (config.blobToken) {
+    const baseCdn = config.blobCdnUrl || "https://awi0ptjauiy6qiis.public.blob.vercel-storage.com";
+    const cdnUrl = `${baseCdn}/${provider}/${safeFile}`;
+    await proxyFromCdn(req, res, cdnUrl);
     return;
   }
 
-  // Set appropriate content type
-  if (filePath.endsWith(".json")) {
-    res.setHeader("Content-Type", "application/json");
-  } else if (filePath.endsWith(".msgpack.zst")) {
-    res.setHeader("Content-Type", "application/octet-stream");
-    res.setHeader("Content-Disposition", `inline; filename="${safeFile}"`);
+  // 2. Development Mode: Fallback to local disk
+  if (fs.existsSync(filePath)) {
+    // Set appropriate content type
+    if (filePath.endsWith(".json")) {
+      res.setHeader("Content-Type", "application/json");
+    } else if (filePath.endsWith(".msgpack.zst")) {
+      res.setHeader("Content-Type", "application/octet-stream");
+      res.setHeader("Content-Disposition", `inline; filename="${safeFile}"`);
+    }
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cache-Control", "no-store");
+
+    res.sendFile(path.resolve(filePath));
+    return;
   }
 
-  // Enable CORS for frontend dev server
-  res.setHeader("Access-Control-Allow-Origin", "*");
-
-  // No caching in dev
-  res.setHeader("Cache-Control", "no-store");
-
-  res.sendFile(path.resolve(filePath));
+  res.status(404).json({ error: "File not found" });
 });
 
 export default router;
