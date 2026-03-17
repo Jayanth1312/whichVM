@@ -6,6 +6,7 @@ export const config = {
   port: parseInt(process.env.PORT || "5000", 10),
   nodeEnv: process.env.NODE_ENV || "development",
   cloudpriceKey: process.env.CLOUDPRICE_KEY,
+  cronSecret: process.env.CRON_SECRET,
 
   // MongoDB
   mongoUri: process.env.MONGO_URI || "",
