@@ -17,11 +17,13 @@ const DEFAULT_REGIONS: Record<string, string> = {
   AWS: "us-east-1",
 };
 
+import { Suspense } from "react";
+
 interface HeaderProps {
   activeProvider?: string;
 }
 
-export function Header({ activeProvider: propActiveProvider }: HeaderProps) {
+function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -274,5 +276,13 @@ export function Header({ activeProvider: propActiveProvider }: HeaderProps) {
         </nav>
       </div>
     </header>
+  );
+}
+
+export function Header(props: HeaderProps) {
+  return (
+    <Suspense fallback={<header className="sticky top-0 z-50 w-full h-16 border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-xl" />}>
+      <HeaderContent {...props} />
+    </Suspense>
   );
 }
