@@ -507,7 +507,9 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
         }
       } catch (err) {
         if (!cancelled) {
-          console.error("[DataTable] Failed to load data:", err);
+          if (process.env.NODE_ENV !== "production") {
+            console.error("[DataTable] Failed to load data:", err);
+          }
           setAllData([]);
         }
       } finally {
@@ -731,7 +733,9 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
           }
         }
       } catch {
-        console.error(`Failed to fetch regions from backend`);
+        if (process.env.NODE_ENV !== "production") {
+          console.error(`Failed to fetch regions from backend`);
+        }
       }
     };
     fetchRegions();
