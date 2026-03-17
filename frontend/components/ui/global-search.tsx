@@ -135,7 +135,7 @@ export function GlobalSearch() {
             if (q.trim().length > 1) setOpen(true);
           }}
           placeholder={loading ? "Warming index..." : "Search"}
-          className="pl-9 pr-8 h-9 rounded-md bg-neutral-900 border-neutral-800 text-sm focus-visible:ring-0 focus-visible:border-neutral-800"
+          className="pl-9 pr-8 h-10 rounded-md bg-neutral-900 border-neutral-800 text-sm focus-visible:ring-0 focus-visible:border-neutral-800"
         />
         {loading && <Loader2 className="absolute right-9 h-4 w-4 animate-spin text-neutral-500" />}
         {q && (

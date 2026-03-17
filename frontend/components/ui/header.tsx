@@ -8,6 +8,7 @@ import { GlobalSearch } from "@/components/ui/global-search";
 import { AmazonWebServices } from "@/app/icons/amazonIcon";
 import { MicrosoftAzure } from "@/app/icons/azureIcon";
 import { GoogleCloud } from "@/app/icons/gcpIcon";
+import { GitHub } from "@/app/icons/githubIcon";
 
 const providers = ["AWS", "Azure", "GCP"];
 
@@ -181,7 +182,7 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
             variant="outline"
             size="sm"
             onClick={() => router.push("/compare")}
-            className="h-10 gap-2.5 pl-1.5 pr-4 rounded-full border border-neutral-800! transition-colors cursor-pointer flex items-center bg-black/50 hover:bg-neutral-900/75!"
+            className="h-10 gap-2.5 pl-1.5 pr-4 rounded-md border border-neutral-800! transition-colors cursor-pointer flex items-center bg-black/50 hover:bg-neutral-900/75!"
           >
             <div className="flex items-center -space-x-2.5">
               <div className="w-7 h-7 rounded-full bg-[#0a0a0a] border border-neutral-800 flex items-center justify-center p-1.5 overflow-hidden">
@@ -197,6 +198,21 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
             <span className="text-[14px] font-semibold text-white">
               Compare
             </span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="h-10 gap-1.5 px-3 rounded-md border border-neutral-800! bg-neutral-900/40 hover:bg-neutral-800 transition-colors cursor-pointer flex items-center"
+          >
+            <a
+              href="https://github.com/Jayanth1312/whichVM"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <GitHub className="w-4 h-4 text-white" fill="none" />
+              <span className="text-[13px] font-medium text-white">Star</span>
+            </a>
           </Button>
         </div>
 
