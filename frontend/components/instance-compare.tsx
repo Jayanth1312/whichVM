@@ -1141,7 +1141,9 @@ export function ComparePage() {
           }
         }
       } catch (err) {
-        console.error("Failed to load compare data:", err);
+        if (process.env.NODE_ENV !== "production") {
+          console.error("Failed to load compare data:", err);
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
