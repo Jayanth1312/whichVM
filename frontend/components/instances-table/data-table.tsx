@@ -76,6 +76,26 @@ const regionStore: Record<string, any[]> = {};
 let warmingProvider: string | null = null;
 let warmingAbort: AbortController | null = null;
 
+// Concurrency limiter to prevent artificial throttling during warming
+function createLimiter(concurrency: number) {
+  let active = 0;
+  const queue: Array<() => void> = [];
+  return async function <T>(fn: () => Promise<T>): Promise<T> {
+    if (active >= concurrency) {
+      await new Promise<void>((resolve) => queue.push(resolve));
+    }
+    active++;
+    try {
+      return await fn();
+    } finally {
+      active--;
+      if (queue.length > 0) {
+        queue.shift()?.();
+      }
+    }
+  };
+}
+
 // Helper: fetch + decompress a single region file, returning instances[]
 async function fetchAndDecode(
   providerLower: string,
@@ -527,9 +547,11 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
           `[DataTable] 🔥 Warming all data triggers for: ${providersList.join(", ")}`,
         );
 
-        for (const prov of providersList) {
-          if (abort.signal.aborted) return;
+        // Queue all warming tasks across all providers
+        const limit = createLimiter(5);
+        const promises: Promise<void>[] = [];
 
+        for (const prov of providersList) {
           const regionEntries = manifest.providers[prov]?.regions ?? [];
           if (!regionEntries.length) continue;
 
@@ -537,13 +559,11 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
             `[DataTable] 🔥 Background warming ${regionEntries.length} regions for ${prov}`,
           );
 
-          const BATCH_SIZE = 4;
-          for (let i = 0; i < regionEntries.length; i += BATCH_SIZE) {
-            if (abort.signal.aborted) return;
+          for (const entry of regionEntries) {
+            promises.push(
+              limit(async () => {
+                if (abort.signal.aborted) return;
 
-            const batch = regionEntries.slice(i, i + BATCH_SIZE);
-            await Promise.all(
-              batch.map(async (entry: any) => {
                 const rid = entry.id;
                 const key = `${prov}:${rid}`;
 
@@ -555,12 +575,14 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                     regionStore[key] = instances;
                   }
                 } catch {}
-              }),
+              })
             );
-
-            await new Promise((r) => setTimeout(r, 50));
           }
         }
+
+        await Promise.all(promises);
+
+        if (abort.signal.aborted) return;
 
         console.log(
           "[DataTable] ✅ Global warming complete for all providers!",
