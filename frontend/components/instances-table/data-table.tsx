@@ -61,6 +61,7 @@ import {
   loadFilterState,
   type PersistedFilterState,
 } from "@/lib/cache";
+import { getDataUrl } from "@/lib/api-utils";
 
 const DEFAULT_REGIONS: Record<string, string> = {
   Azure: "eastus",
@@ -69,7 +70,6 @@ const DEFAULT_REGIONS: Record<string, string> = {
 };
 
 // Backend API base URL (proxied via Next.js rewrites)
-const API_BASE = "/api/data";
 
 // ─── Module-level region store (survives component remounts) ────────
 const regionStore: Record<string, any[]> = {};
@@ -102,7 +102,7 @@ async function fetchAndDecode(
   regionId: string,
   manifest: any | null,
 ): Promise<any[]> {
-  let url = `${API_BASE}/${providerLower}/${regionId}.msgpack.zst`;
+  let url = getDataUrl(`/${providerLower}/${regionId}.msgpack.zst`);
 
   // Prefer Blob CDN URL from manifest
   if (manifest) {
@@ -490,7 +490,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
         let manifest: any = null;
         try {
           const manifestRes = await cachedFetch(
-            `${API_BASE}/meta/index.json`,
+            getDataUrl(`/meta/index.json`),
             1 * 60 * 1000,
           );
           if (manifestRes.ok) manifest = await manifestRes.json();
@@ -536,7 +536,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
     const warmAll = async () => {
       try {
         const manifestRes = await cachedFetch(
-          `${API_BASE}/meta/index.json`,
+          getDataUrl(`/meta/index.json`),
           1 * 60 * 1000,
         );
         if (!manifestRes.ok) return;
@@ -600,7 +600,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
       clearTimeout(timer);
       abort.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
 
@@ -717,7 +717,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
     const fetchRegions = async () => {
       try {
         const response = await cachedFetch(
-          `${API_BASE}/meta/index.json`,
+          getDataUrl(`/meta/index.json`),
           1 * 60 * 1000,
         );
         if (response.ok) {

@@ -50,8 +50,7 @@ import {
   type FilterOption,
 } from "@/components/ui/filter-dropdown";
 import { loadFilterState, saveFilterState } from "@/lib/cache";
-
-const API_BASE = "/api/data";
+import { getDataUrl } from "@/lib/api-utils";
 
 /* ─── Constants ─── */
 
@@ -1105,7 +1104,7 @@ export function ComparePage() {
           const d_regs: Record<string, string> = { aws: "us-east-1", azure: "eastus", gcp: "us-central1" };
           const r = d_regs[p];
           try {
-            const url = `${API_BASE}/${p}/${r}.msgpack.zst`;
+            const url = getDataUrl(`/${p}/${r}.msgpack.zst`);
             const response = await cachedFetch(url);
             if (!response.ok) return;
 

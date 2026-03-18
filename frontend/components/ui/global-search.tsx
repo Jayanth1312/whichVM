@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { decompress as zstdDecompress } from "fzstd";
 import { decode } from "@msgpack/msgpack";
 import { cachedFetch } from "@/lib/cache";
+import { getDataUrl } from "@/lib/api-utils";
 
 interface SearchHit {
   instanceType: string;
@@ -55,7 +56,7 @@ export function GlobalSearch() {
         const promises = providers.map(async (p) => {
           try {
             const region = DEFAULT_REGIONS[p];
-            const url = `/api/data/${p}/${region}.msgpack.zst`;
+            const url = getDataUrl(`/${p}/${region}.msgpack.zst`);
             const res = await cachedFetch(url);
             if (!res.ok) return;
 

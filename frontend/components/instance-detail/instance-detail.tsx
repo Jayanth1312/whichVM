@@ -27,8 +27,7 @@ import {
   type FilterOption,
 } from "@/components/ui/filter-dropdown";
 import { cachedFetch } from "@/lib/cache";
-
-const API_BASE = "/api/data";
+import { getDataUrl } from "@/lib/api-utils";
 
 interface InstanceDetailProps {
   provider: string;
@@ -324,7 +323,7 @@ export function InstanceDetail({
     const fetchRegions = async () => {
       try {
         const response = await cachedFetch(
-          `${API_BASE}/meta/index.json`,
+          getDataUrl(`/meta/index.json`),
           12 * 60 * 60 * 1000,
         );
         if (response.ok) {
@@ -352,7 +351,7 @@ export function InstanceDetail({
       setIsLoading(true);
       setError(null);
       try {
-        const url = `${API_BASE}/${provider.toLowerCase()}/${region}.msgpack.zst`;
+        const url = getDataUrl(`/${provider.toLowerCase()}/${region}.msgpack.zst`);
         const response = await cachedFetch(url);
         if (!response.ok) {
           setError("Failed to fetch instance data");

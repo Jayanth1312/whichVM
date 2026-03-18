@@ -1,5 +1,13 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Environment Variables
+
+To allow the frontend to fetch data files directly from the Blob CDN (bypassing the backend proxy), create a `.env` file in the root of the `frontend/` directory and set the following variable:
+
+```bash
+NEXT_PUBLIC_BLOB_CDN_URL=https://your-project-id.public.blob.vercel-storage.com
+```
+
 ## Getting Started
 
 First, run the development server:
