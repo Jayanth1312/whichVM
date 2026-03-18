@@ -31,8 +31,13 @@ export function FilterDropdown({
 }: FilterDropdownProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
+  const [activeIndex, setActiveIndex] = React.useState(-1);
   const ref = React.useRef<HTMLDivElement>(null);
   const searchRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    setActiveIndex(-1);
+  }, [search, open]);
 
   React.useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -61,8 +66,28 @@ export function FilterDropdown({
   const selectedOption = options.find((o) => o.value === value);
   const selectedLabel = selectedOption?.label || value;
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!open) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev < filtered.length - 1 ? prev + 1 : prev));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev > 0 ? prev - 1 : prev));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (activeIndex >= 0 && activeIndex < filtered.length) {
+        onSelect(filtered[activeIndex].value);
+        setOpen(false);
+        setSearch("");
+      }
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
+
   return (
-    <div ref={ref} className={`relative ${className}`}>
+    <div ref={ref} className={`relative ${className}`} onKeyDown={handleKeyDown}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
@@ -108,7 +133,7 @@ export function FilterDropdown({
                 No results found
               </div>
             ) : (
-              filtered.map((opt) => (
+              filtered.map((opt, i) => (
                 <button
                   key={opt.value}
                   type="button"
@@ -118,7 +143,7 @@ export function FilterDropdown({
                     setSearch("");
                   }}
                   className={`flex w-full items-center justify-between gap-2 px-4 py-2 text-left text-sm transition-colors cursor-pointer group ${
-                    opt.value === value
+                    opt.value === value || i === activeIndex
                       ? "bg-neutral-800/50 text-white"
                       : "text-neutral-300 hover:bg-neutral-800"
                   }`}

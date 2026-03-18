@@ -221,7 +221,7 @@ function mapRawInstance(
   return {
     id: `${provider}-${region}-${index}`,
     provider,
-    name: isAzure && item.f ? item.f.replace(/_/g, " ") : (item.n || ""),
+    name: isAzure && item.f ? item.f.replace(/_/g, " ") : item.n || "",
     apiName: item.n || "",
     family: item.f || "",
     vcpus: String(item.v || ""),
@@ -240,6 +240,7 @@ function mapRawInstance(
     windowsOnDemand: formatPriceRaw(
       pr.windowsOnDemand || pr.windows_payasyougo,
     ),
+    pr: item.pr || {},
   };
 }
 
@@ -270,11 +271,12 @@ function getPricingValue(
   key: string,
 ): number | null {
   if (detail?.pricing) {
-    const regionPricing = detail.pricing[region] || detail.pricing[Object.keys(detail.pricing)[0]];
+    const regionPricing =
+      detail.pricing[region] || detail.pricing[Object.keys(detail.pricing)[0]];
     if (regionPricing && regionPricing[key] != null) return regionPricing[key];
   }
   if (instance?.pr && instance.pr[key] != null) {
-     return instance.pr[key];
+    return instance.pr[key];
   }
   return null;
 }
@@ -385,7 +387,9 @@ function buildSectionGroups(
             if (d) {
               const val = getDetailValue(d, "instanceType");
               return isAzure && getDetailValue(d, "instanceFamily")
-                ? formatDetailValue(getDetailValue(d, "instanceFamily")).replace(/_/g, " ")
+                ? formatDetailValue(
+                    getDetailValue(d, "instanceFamily"),
+                  ).replace(/_/g, " ")
                 : formatDetailValue(val);
             }
             return i ? i.name : "—";
@@ -396,21 +400,30 @@ function buildSectionGroups(
               {
                 label: "Instance Family",
                 getValue: (d: any, i: any) =>
-                  d ? formatDetailValue(getDetailValue(d, "instanceFamily")) : (i?.family || "—"),
+                  d
+                    ? formatDetailValue(getDetailValue(d, "instanceFamily"))
+                    : i?.family || "—",
               },
             ]
           : []),
         {
           label: "vCPUs",
-          getValue: (d, i) => d ? formatDetailValue(getDetailValue(d, "vCPUs")) : (i?.vcpus || "—"),
+          getValue: (d, i) =>
+            d ? formatDetailValue(getDetailValue(d, "vCPUs")) : i?.vcpus || "—",
         },
         {
           label: "Processor",
-          getValue: (d, i) => d ? formatDetailValue(getDetailValue(d, "processor")) : (i?.processor || "—"),
+          getValue: (d, i) =>
+            d
+              ? formatDetailValue(getDetailValue(d, "processor"))
+              : i?.processor || "—",
         },
         {
           label: "Architecture",
-          getValue: (d, i) => d ? formatDetailValue(getDetailValue(d, "architecture")) : (i?.architecture?.toUpperCase() || "—"),
+          getValue: (d, i) =>
+            d
+              ? formatDetailValue(getDetailValue(d, "architecture"))
+              : i?.architecture?.toUpperCase() || "—",
         },
         {
           label: "Clock Speed (GHz)",
@@ -484,7 +497,10 @@ function buildSectionGroups(
       specs: [
         {
           label: "Instance Storage",
-          getValue: (d, i) => d ? formatDetailValue(getDetailValue(d, "storage")) : (i?.storage || "—"),
+          getValue: (d, i) =>
+            d
+              ? formatDetailValue(getDetailValue(d, "storage"))
+              : i?.storage || "—",
         },
         {
           label: "EBS Optimized",
@@ -523,8 +539,11 @@ function buildSectionGroups(
           label: "Network Perf",
           getValue: (d, i) =>
             d
-              ? formatDetailValue(getDetailValue(d, "network") ?? getDetailValue(d, "bandwidth"))
-              : (i?.network || "—"),
+              ? formatDetailValue(
+                  getDetailValue(d, "network") ??
+                    getDetailValue(d, "bandwidth"),
+                )
+              : i?.network || "—",
         },
         {
           label: "Max Interfaces",
@@ -693,13 +712,17 @@ function buildSectionGroups(
     const baseCost = getPricingValue(detail, instance, region, key);
     if (baseCost == null) return "—";
 
-    const vcpus = detail 
-      ? (getDetailValue(detail, "vCPUs") || 1) 
-      : (instance?.vcpus ? parseFloat(instance.vcpus) : 1);
-      
-    const memory = detail 
-      ? (getDetailValue(detail, "memoryGiB") || 1) 
-      : (instance?.memory ? parseFloat(instance.memory) : 1);
+    const vcpus = detail
+      ? getDetailValue(detail, "vCPUs") || 1
+      : instance?.vcpus
+        ? parseFloat(instance.vcpus)
+        : 1;
+
+    const memory = detail
+      ? getDetailValue(detail, "memoryGiB") || 1
+      : instance?.memory
+        ? parseFloat(instance.memory)
+        : 1;
 
     return calculateCost(baseCost, vcpus, memory, interval, unit, currency);
   };
@@ -808,7 +831,12 @@ function buildSectionGroups(
       {
         label: "Windows Cost",
         isPrice: true,
-        getValue: (d, i) => getFormattedPrice(d, i, isHB ? getAzureKey("linux") : getAzureKey("windows")),
+        getValue: (d, i) =>
+          getFormattedPrice(
+            d,
+            i,
+            isHB ? getAzureKey("linux") : getAzureKey("windows"),
+          ),
       },
       {
         label: "RHEL Cost",
@@ -947,9 +975,15 @@ function InstanceSearchColumn({
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-5 h-5 flex items-center justify-center">
-                        {match.provider === "aws" && <AmazonWebServices className="w-4 h-4" />}
-                        {match.provider === "azure" && <MicrosoftAzure className="w-4 h-4" />}
-                        {match.provider === "gcp" && <GoogleCloud className="w-4 h-4" />}
+                        {match.provider === "aws" && (
+                          <AmazonWebServices className="w-4 h-4" />
+                        )}
+                        {match.provider === "azure" && (
+                          <MicrosoftAzure className="w-4 h-4" />
+                        )}
+                        {match.provider === "gcp" && (
+                          <GoogleCloud className="w-4 h-4" />
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-bold text-white truncate">
@@ -1032,7 +1066,8 @@ export function ComparePage() {
       if (saved.currency) setCurrency(saved.currency);
       if (saved.pricingUnit) setPricingUnit(saved.pricingUnit);
       if (saved.reservedPlan) setReservedPlan(saved.reservedPlan);
-      if (saved.azureHybridBenefit) setAzureHybridBenefit(saved.azureHybridBenefit);
+      if (saved.azureHybridBenefit)
+        setAzureHybridBenefit(saved.azureHybridBenefit);
     }
     setIsRestored(true);
   }, [provider]);
@@ -1047,7 +1082,14 @@ export function ComparePage() {
       reservedPlan,
       azureHybridBenefit,
     });
-  }, [pricingInterval, currency, pricingUnit, reservedPlan, provider, isRestored]);
+  }, [
+    pricingInterval,
+    currency,
+    pricingUnit,
+    reservedPlan,
+    provider,
+    isRestored,
+  ]);
 
   // Initialize reservedPlan based on provider if not already set or if provider changed
   useEffect(() => {
@@ -1101,7 +1143,11 @@ export function ComparePage() {
 
       try {
         const promises = providers.map(async (p) => {
-          const d_regs: Record<string, string> = { aws: "us-east-1", azure: "eastus", gcp: "us-central1" };
+          const d_regs: Record<string, string> = {
+            aws: "us-east-1",
+            azure: "eastus",
+            gcp: "us-central1",
+          };
           const r = d_regs[p];
           try {
             const url = getDataUrl(`/${p}/${r}.msgpack.zst`);
@@ -1193,7 +1239,15 @@ export function ComparePage() {
         reservedPlan,
         azureHybridBenefit,
       ),
-    [provider, region, pricingInterval, pricingUnit, currency, reservedPlan, azureHybridBenefit],
+    [
+      provider,
+      region,
+      pricingInterval,
+      pricingUnit,
+      currency,
+      reservedPlan,
+      azureHybridBenefit,
+    ],
   );
 
   const SERVICE_NAMES: Record<string, string> = {
@@ -1211,7 +1265,10 @@ export function ComparePage() {
             <Breadcrumb className="mb-4">
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink asChild className="text-neutral-500 hover:text-white transition-colors text-[13px] font-medium">
+                  <BreadcrumbLink
+                    asChild
+                    className="text-neutral-500 hover:text-white transition-colors text-[13px] font-medium"
+                  >
                     <Link href="/">Instances</Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
@@ -1328,7 +1385,11 @@ export function ComparePage() {
                     compareMode === "diff" && filledCount > 1
                       ? section.specs.filter((spec) => {
                           const values = activeDetails
-                            .map((d, idx) => activeColumns[idx] ? spec.getValue(d, activeColumns[idx]) : "—")
+                            .map((d, idx) =>
+                              activeColumns[idx]
+                                ? spec.getValue(d, activeColumns[idx])
+                                : "—",
+                            )
                             .filter((_, idx) => activeColumns[idx] !== null);
                           return !values.every((v) => v === values[0]);
                         })
@@ -1428,7 +1489,9 @@ export function ComparePage() {
 
                       {filteredSpecs.map((spec, specIdx) => {
                         const values = activeDetails.map((d, idx) =>
-                          activeColumns[idx] ? spec.getValue(d, activeColumns[idx]) : "—",
+                          activeColumns[idx]
+                            ? spec.getValue(d, activeColumns[idx])
+                            : "—",
                         );
                         return (
                           <tr

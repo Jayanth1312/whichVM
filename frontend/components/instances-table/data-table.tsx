@@ -70,6 +70,7 @@ const DEFAULT_REGIONS: Record<string, string> = {
 };
 
 // Backend API base URL (proxied via Next.js rewrites)
+const API_BASE = process.env.NEXT_PUBLIC_BLOB_CDN_URL || "/api/data";
 
 // ─── Module-level region store (survives component remounts) ────────
 const regionStore: Record<string, any[]> = {};
@@ -125,7 +126,6 @@ async function fetchAndDecode(
 
 const COMMITMENT_OPTIONS: Record<string, { label: string; value: string }[]> = {
   AWS: [
-    { value: "payasyougo", label: "Pay-as-you-go" },
     { value: "ri_1y_no", label: "Reserved 1y - No Upfront" },
     { value: "ri_1y_partial", label: "Reserved 1y - Partial Upfront" },
     { value: "ri_1y_all", label: "Reserved 1y - All Upfront" },
@@ -355,7 +355,11 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
   const [currency, setCurrency] = React.useState("usd");
   const [pricingUnit, setPricingUnit] = React.useState("instance");
   const [reservedPlan, setReservedPlan] = React.useState(
-    provider.toUpperCase() === "GCP" ? "ondemand" : "payasyougo"
+    provider.toUpperCase() === "GCP"
+      ? "ondemand"
+      : provider.toUpperCase() === "AWS"
+        ? "ri_1y_no"
+        : "payasyougo",
   );
   const [azureHybridBenefit, setAzureHybridBenefit] = React.useState("No"); // Yes, No
   const [isRestored, setIsRestored] = React.useState(false);
@@ -388,7 +392,11 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
           setReservedPlan(saved.reservedPlan);
         } else {
           setReservedPlan(
-            provider.toUpperCase() === "GCP" ? "ondemand" : "payasyougo"
+            provider.toUpperCase() === "GCP"
+              ? "ondemand"
+              : provider.toUpperCase() === "AWS"
+                ? "ri_1y_no"
+                : "payasyougo",
           );
         }
       }
@@ -405,9 +413,17 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
     } else {
       // Default fallback if no cache available for this provider
       setReservedPlan(
-        provider.toUpperCase() === "GCP" ? "ondemand" : "payasyougo"
+        provider.toUpperCase() === "GCP"
+          ? "ondemand"
+          : provider.toUpperCase() === "AWS"
+            ? "ri_1y_no"
+            : "payasyougo",
       );
-      setRegion(DEFAULT_REGIONS[provider.toUpperCase() as keyof typeof DEFAULT_REGIONS] || "");
+      setRegion(
+        DEFAULT_REGIONS[
+          provider.toUpperCase() as keyof typeof DEFAULT_REGIONS
+        ] || "",
+      );
     }
     setIsRestored(true);
   }, [provider]);
@@ -418,8 +434,6 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
       setRegion(initialRegion);
     }
   }, [initialRegion]);
-
-
 
   // Persist filter state whenever it changes
   React.useEffect(() => {
@@ -577,7 +591,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                     regionStore[key] = instances;
                   }
                 } catch {}
-              })
+              }),
             );
           }
         }
@@ -602,8 +616,6 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
     };
 
   }, []);
-
-
 
   const [fetchedRegions, setFetchedRegions] = React.useState<FilterOption[]>(
     [],
@@ -912,7 +924,6 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
       const name = item.n || "";
       const family = item.f || "";
 
-
       let linuxKey = "linuxOnDemand";
       let windowsKey = "windowsOnDemand";
       let rhelKey = "rhelOnDemand";
@@ -920,14 +931,19 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
       let slesKey = "slesOnDemand";
 
       if (provider.toUpperCase() === "AWS") {
-        if (reservedPlan === "payasyougo") {
+        if (reservedPlan === "ondemand" || reservedPlan === "payasyougo") {
           linuxKey = "linuxOnDemand";
           windowsKey = "windowsOnDemand";
         } else if (reservedPlan.startsWith("ri_")) {
           const type = reservedPlan.split("_")[2]; // no, partial, all
           const is3y = reservedPlan.startsWith("ri_3y");
           const term = is3y ? "3yr" : "1yr";
-          const suffix = type === "no" ? "NoUpfront" : type === "partial" ? "PartialUpfront" : "AllUpfront";
+          const suffix =
+            type === "no"
+              ? "NoUpfront"
+              : type === "partial"
+                ? "PartialUpfront"
+                : "AllUpfront";
           linuxKey = `linuxReserved${term}Standard${suffix}`;
           windowsKey = `windowsReserved${term}Standard${suffix}`;
         } else if (reservedPlan.startsWith("sp_compute_")) {
@@ -968,12 +984,21 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
       const rhelCost = formatCost(pr[rhelKey]);
       const ubuntuCost = formatCost(pr[ubuntuKey]);
       const slesCost = formatCost(pr[slesKey]);
-      const instancePrice = provider.toUpperCase() === "GCP" ? linuxCost : undefined;
+      const instancePrice =
+        provider.toUpperCase() === "GCP" ? linuxCost : undefined;
 
-      const linuxOnDemandCost = formatCost(pr["linuxOnDemand"] || pr["linux_payasyougo"]);
-      const linuxSpotCost = formatCost(pr["linuxSpot"] || pr["linux_spot"] || pr["ubuntu_spot"]);
-      const windowsOnDemandCost = formatCost(pr["windowsOnDemand"] || pr["windows_payasyougo"]);
-      const windowsSpotCost = formatCost(pr["windowsSpot"] || pr["windows_spot"]);
+      const linuxOnDemandCost = formatCost(
+        pr["linuxOnDemand"] || pr["linux_payasyougo"],
+      );
+      const linuxSpotCost = formatCost(
+        pr["linuxSpot"] || pr["linux_spot"] || pr["ubuntu_spot"],
+      );
+      const windowsOnDemandCost = formatCost(
+        pr["windowsOnDemand"] || pr["windows_payasyougo"],
+      );
+      const windowsSpotCost = formatCost(
+        pr["windowsSpot"] || pr["windows_spot"],
+      );
 
       return {
         id: `${provider}-${region}-${index}`,
@@ -1068,7 +1093,11 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
     setCurrency("usd");
     setPricingUnit("instance");
     const defaultPlan =
-      provider.toUpperCase() === "GCP" ? "ondemand" : "payasyougo";
+      provider.toUpperCase() === "GCP"
+        ? "ondemand"
+        : provider.toUpperCase() === "AWS"
+          ? "ri_1y_no"
+          : "payasyougo";
     setReservedPlan(defaultPlan);
     const defaultR = DEFAULT_REGIONS[provider] || "eastus";
     if (region !== defaultR) {

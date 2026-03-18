@@ -37,6 +37,7 @@ const ProviderIcon = ({ provider }: { provider: string }) => {
 export function GlobalSearch() {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<SearchHit[]>([]);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const [indexedData, setIndexedData] = useState<SearchHit[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -64,30 +65,32 @@ export function GlobalSearch() {
             const decompressed = zstdDecompress(new Uint8Array(arrayBuffer));
             const data: any = decode(decompressed);
             if (data?.instances) {
-               data.instances.forEach((inst: any) => {
-                  masterList.push({
-                      instanceType: inst.n || "",
-                      vCPUs: inst.v || 0,
-                      memoryGiB: inst.m || 0,
-                      provider: p,
-                  });
-               });
+              data.instances.forEach((inst: any) => {
+                masterList.push({
+                  instanceType: inst.n || "",
+                  vCPUs: inst.v || 0,
+                  memoryGiB: inst.m || 0,
+                  provider: p,
+                });
+              });
             }
           } catch (e) {
-             // skip
+            // skip
           }
         });
         await Promise.all(promises);
         if (active) setIndexedData(masterList);
       } catch (e) {
-         // ignore
+        // ignore
       } finally {
         if (active) setLoading(false);
       }
     }
 
     loadAll();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Sync client-side array filtration
@@ -95,18 +98,23 @@ export function GlobalSearch() {
     const query = q.toLowerCase().trim();
     if (query.length <= 1) {
       setHits([]);
+      setActiveIndex(-1);
       return;
     }
 
-    const filtered = indexedData.filter(h =>
-       h.instanceType.toLowerCase().includes(query)
-    ).slice(0, 10);
+    const filtered = indexedData
+      .filter((h) => h.instanceType.toLowerCase().includes(query))
+      .slice(0, 10);
     setHits(filtered);
+    setActiveIndex(-1);
   }, [q, indexedData]);
 
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
       }
     };
@@ -118,11 +126,16 @@ export function GlobalSearch() {
     setOpen(false);
     setQ("");
     const region = DEFAULT_REGIONS[hit.provider];
-    router.push(`/${hit.provider}/${region}/instance/${encodeURIComponent(hit.instanceType)}`);
+    router.push(
+      `/${hit.provider}/${region}/instance/${encodeURIComponent(hit.instanceType)}`,
+    );
   };
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-[240px] md:max-w-[320px]">
+    <div
+      ref={containerRef}
+      className="relative w-full max-w-[240px] md:max-w-[320px]"
+    >
       <div className="relative flex items-center">
         <Search className="absolute left-3 h-4 w-4 text-neutral-500" />
         <Input
@@ -135,10 +148,29 @@ export function GlobalSearch() {
           onFocus={() => {
             if (q.trim().length > 1) setOpen(true);
           }}
+          onKeyDown={(e) => {
+            if (!open || hits.length === 0) return;
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setActiveIndex((prev) => (prev < hits.length - 1 ? prev + 1 : prev));
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setActiveIndex((prev) => (prev > 0 ? prev - 1 : prev));
+            } else if (e.key === "Enter") {
+              e.preventDefault();
+              if (activeIndex >= 0 && activeIndex < hits.length) {
+                handleSelect(hits[activeIndex]);
+              }
+            } else if (e.key === "Escape") {
+              setOpen(false);
+            }
+          }}
           placeholder={loading ? "Warming index..." : "Search"}
-          className="pl-9 pr-8 h-10 rounded-md bg-neutral-900 border-neutral-800 text-sm focus-visible:ring-0 focus-visible:border-neutral-800"
+          className="pl-9 pr-8 h-10 rounded-lg bg-neutral-900 border-neutral-800 text-sm focus-visible:ring-0 focus-visible:border-neutral-800"
         />
-        {loading && <Loader2 className="absolute right-9 h-4 w-4 animate-spin text-neutral-500" />}
+        {loading && (
+          <Loader2 className="absolute right-9 h-4 w-4 animate-spin text-neutral-500" />
+        )}
         {q && (
           <X
             className="absolute right-3 h-4 w-4 text-neutral-500 hover:text-white cursor-pointer"
@@ -164,7 +196,10 @@ export function GlobalSearch() {
                 <div
                   key={`${hit.provider}-${hit.instanceType}-${i}`}
                   onClick={() => handleSelect(hit)}
-                  className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-neutral-800/80 transition-colors"
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-neutral-800/80 transition-colors",
+                    i === activeIndex && "bg-neutral-800/80"
+                  )}
                 >
                   <div className="w-5 h-5 flex items-center justify-center">
                     <ProviderIcon provider={hit.provider} />

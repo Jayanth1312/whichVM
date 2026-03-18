@@ -182,7 +182,7 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
             variant="outline"
             size="sm"
             onClick={() => router.push("/compare")}
-            className="h-10 gap-2.5 pl-1.5 pr-4 rounded-md border border-neutral-800! transition-colors cursor-pointer flex items-center bg-black/50 hover:bg-neutral-900/75!"
+            className="h-10 gap-2.5 pl-1.5 pr-4 rounded-lg border border-neutral-800! transition-colors cursor-pointer flex items-center bg-black/50 hover:bg-neutral-900/75!"
           >
             <div className="flex items-center -space-x-2.5">
               <div className="w-7 h-7 rounded-full bg-[#0a0a0a] border border-neutral-800 flex items-center justify-center p-1.5 overflow-hidden">
@@ -203,7 +203,7 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
             variant="outline"
             size="sm"
             asChild
-            className="h-10 gap-1.5 px-3 rounded-md border border-neutral-800! bg-neutral-900/40 hover:bg-neutral-800 transition-colors cursor-pointer flex items-center"
+            className="h-10 gap-1.5 px-3 rounded-lg border border-neutral-800! bg-black/50 hover:bg-neutral-900/75! transition-colors cursor-pointer flex items-center"
           >
             <a
               href="https://github.com/Jayanth1312/whichVM"
@@ -297,7 +297,11 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
 
 export function Header(props: HeaderProps) {
   return (
-    <Suspense fallback={<header className="sticky top-0 z-50 w-full h-16 border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-xl" />}>
+    <Suspense
+      fallback={
+        <header className="sticky top-0 z-50 w-full h-16 border-b border-neutral-800 bg-neutral-950/80 backdrop-blur-xl" />
+      }
+    >
       <HeaderContent {...props} />
     </Suspense>
   );

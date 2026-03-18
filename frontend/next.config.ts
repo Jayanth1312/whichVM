@@ -1,9 +1,19 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // If you are no longer running a separate backend proxy server,
-  // there's no need to proxy /api/* requests. The frontend fetches
-  // static Blob storage files directly.
+  async rewrites() {
+    const cdnUrl = process.env.NEXT_PUBLIC_BLOB_CDN_URL;
+    const rewrites = [];
+
+    if (cdnUrl) {
+      rewrites.push({
+        source: "/api/data/:path*",
+        destination: `${cdnUrl}/:path*`,
+      });
+    }
+
+    return rewrites;
+  },
 };
 
 export default nextConfig;

@@ -91,8 +91,7 @@ export function saveFilterState(
     const key = getFilterKey(provider);
     const payload = { ...state, timestamp: Date.now() };
     localStorage.setItem(key, JSON.stringify(payload));
-  } catch {
-  }
+  } catch {}
 }
 
 export function loadFilterState(

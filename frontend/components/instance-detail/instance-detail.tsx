@@ -29,6 +29,8 @@ import {
 import { cachedFetch } from "@/lib/cache";
 import { getDataUrl } from "@/lib/api-utils";
 
+const API_BASE = process.env.NEXT_PUBLIC_BLOB_CDN_URL || "/api/data";
+
 interface InstanceDetailProps {
   provider: string;
   region: string;
@@ -437,9 +439,14 @@ export function InstanceDetail({
       </div>
     );
 
-  const currentIndex = allInstances.findIndex((inst) => inst.n === instanceName);
+  const currentIndex = allInstances.findIndex(
+    (inst) => inst.n === instanceName,
+  );
   const prevInstance = currentIndex > 0 ? allInstances[currentIndex - 1] : null;
-  const nextInstance = currentIndex < allInstances.length - 1 ? allInstances[currentIndex + 1] : null;
+  const nextInstance =
+    currentIndex < allInstances.length - 1
+      ? allInstances[currentIndex + 1]
+      : null;
 
   const memoryPerVCPU = (instance.m / instance.v).toFixed(1);
   const familySiblings = allInstances
@@ -503,13 +510,19 @@ export function InstanceDetail({
         <Breadcrumb className="mb-4">
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink asChild className="text-neutral-500 hover:text-white transition-colors text-[13px] font-medium">
+              <BreadcrumbLink
+                asChild
+                className="text-neutral-500 hover:text-white transition-colors text-[13px] font-medium"
+              >
                 <Link href="/">Instances</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="text-neutral-800" />
             <BreadcrumbItem>
-              <BreadcrumbLink asChild className="text-neutral-500 hover:text-white transition-colors text-[13px] font-medium capitalize">
+              <BreadcrumbLink
+                asChild
+                className="text-neutral-500 hover:text-white transition-colors text-[13px] font-medium capitalize"
+              >
                 <Link href={`/${provider.toLowerCase()}/${region}`}>
                   {provider} {provider === "AWS" ? "EC2" : "Compute"}
                 </Link>
@@ -731,7 +744,7 @@ export function InstanceDetail({
         {/* Content */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-500/10 border border-blue-400/20 rounded-xl text-blue-400 text-xs font-semibold">
-            <Info className="h-3.5 w-3.5" />
+            <Info className="h-4 w-4" />
             <span>Note: All tables below are also dropdowns</span>
           </div>
 
