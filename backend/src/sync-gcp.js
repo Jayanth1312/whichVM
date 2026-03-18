@@ -27,8 +27,8 @@ const path = require("path");
 const BASE = process.env.CLOUDPRICE_BASE_URL || "https://data.cloudprice.net/api/v2";
 const OUTPUT_DIR = path.join(__dirname, "../output");
 
-const CALL_DELAY_MS = 250;
-const RATE_LIMIT_WAITS = [5000, 15000, 30000, 60000];
+const { ApiQueue } = require("./utils/api-queue");
+const apiQueue = new ApiQueue(KEYS, 100);
 
 let GCP_REGIONS = [];
 let PAYMENT_CONFIGS = [];
@@ -43,41 +43,9 @@ function buildQS(params) {
     .join("&");
 }
 
-// ─── API FETCH ───
-async function apiFetch(pathWithQS, apiKey) {
-  const url = `${BASE}${pathWithQS}`;
-
-  for (let attempt = 0; attempt <= RATE_LIMIT_WAITS.length; attempt++) {
-    try {
-      const res = await fetch(url, {
-        headers: {
-          "subscription-key": apiKey,
-          Accept: "application/json",
-        },
-      });
-
-      if (res.status === 429) {
-        const wait = RATE_LIMIT_WAITS[attempt] || 30000;
-        await sleep(wait);
-        continue;
-      }
-
-      if (res.status === 500) return null;
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      const json = await res.json();
-      if (json?.Status !== "ok") throw new Error("Non-ok status");
-      return json.Data;
-    } catch (e) {
-      if (attempt >= RATE_LIMIT_WAITS.length) throw e;
-      await sleep(5000);
-    }
-  }
-}
-
 // ─── METADATA FETCHERS ───
 async function fetchRegions() {
-  const data = await apiFetch("/gcp/compute/regions", KEYS[0]);
+  const data = await apiQueue.fetch(`${BASE}/gcp/compute/regions`);
   const items = data?.Items ?? data ?? [];
   GCP_REGIONS = items.map((r) =>
     typeof r === "string" ? r : (r.Region ?? r.region ?? r.name ?? r.Name),
@@ -86,7 +54,7 @@ async function fetchRegions() {
 }
 
 async function fetchPaymentTypes() {
-  const data = await apiFetch("/gcp/compute/payment-types", KEYS[0]);
+  const data = await apiQueue.fetch(`${BASE}/gcp/compute/payment-types`);
   const items = data?.Items ?? data ?? [];
   const rawTypes = items.map((p) =>
     typeof p === "string" ? p : (p.PaymentType ?? p.paymentType ?? p.name ?? p.Name),
@@ -197,44 +165,61 @@ async function main() {
 
   console.log(`\n[GCP Pricing] Tasks: ${tasks.length}`);
 
-  let taskIdx = 0;
-  const runWorker = async (apiKey, workerId) => {
-    while (taskIdx < tasks.length) {
-      const currentIdx = taskIdx++;
-      const { region, payConf } = tasks[currentIdx];
-      try {
-        const qs = buildQS({ region, currency: "USD", ...payConf.qs });
-        const data = await apiFetch(`/gcp/compute/instances?${qs}`, apiKey);
-        if (data && data.Items) {
-          for (const item of data.Items) {
-            const instType = item.InstanceType;
-            if (!instType) continue;
+  const startTime = Date.now();
 
-            if (!instanceMap.has(instType)) {
-              instanceMap.set(instType, { specs: null, pricing: {} });
-            }
-            const entry = instanceMap.get(instType);
-            if (!entry.specs) {
-              entry.specs = extractBasicSpecs(item);
-            }
-            if (!entry.pricing[region]) entry.pricing[region] = {};
+  // Run all tasks concurrently through the rate-limited queue.
+  // We can use a concurrency limit (e.g. 20) to avoid building too massive a promise array,
+  // but since we rely on `apiQueue`, we can just map them and `Promise.all`.
+  // To avoid huge memory spikes, let's chunk them or just fire them all if it's < 10000.
+  // Let's use a simple concurrency bound mapper:
 
-            const price = item.PricePerHour;
-            if (price != null) {
-              entry.pricing[region][payConf.key] = price;
-            }
+  async function runTasksWithLimit(taskList, limit, workerFn) {
+    const results = [];
+    const executing = [];
+    for (const item of taskList) {
+      const p = Promise.resolve().then(() => workerFn(item));
+      results.push(p);
+      if (limit <= taskList.length) {
+        const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+        executing.push(e);
+        if (executing.length >= limit) {
+          await Promise.race(executing);
+        }
+      }
+    }
+    return Promise.all(results);
+  }
+
+  await runTasksWithLimit(tasks, 50, async ({ region, payConf }) => {
+    try {
+      const qs = buildQS({ region, currency: "USD", ...payConf.qs });
+      const data = await apiQueue.fetch(`${BASE}/gcp/compute/instances?${qs}`);
+      if (data && data.Items) {
+        for (const item of data.Items) {
+          const instType = item.InstanceType;
+          if (!instType) continue;
+
+          if (!instanceMap.has(instType)) {
+            instanceMap.set(instType, { specs: null, pricing: {} });
+          }
+          const entry = instanceMap.get(instType);
+          if (!entry.specs) {
+            entry.specs = extractBasicSpecs(item);
+          }
+          if (!entry.pricing[region]) entry.pricing[region] = {};
+
+          const price = item.PricePerHour;
+          if (price != null) {
+            entry.pricing[region][payConf.key] = price;
           }
         }
-        process.stdout.write(".");
-      } catch (e) {
-        process.stdout.write("✗");
       }
-      await sleep(CALL_DELAY_MS);
+      process.stdout.write(".");
+    } catch (e) {
+      process.stdout.write("✗");
     }
-  };
+  });
 
-  const startTime = Date.now();
-  await Promise.all(KEYS.map((key, i) => runWorker(key, i + 1)));
   console.log(`\n Pricing took: ${Math.round((Date.now() - startTime)/1000)}s`);
 
   // Enrichment
@@ -242,26 +227,20 @@ async function main() {
   let enrichIdx = 0;
   console.log(`\n[GCP Enrichment] Total: ${instancesToEnrich.length}`);
 
-  const enrichWorker = async (apiKey, workerId) => {
-    while (enrichIdx < instancesToEnrich.length) {
-      const currentIdx = enrichIdx++;
-      const it = instancesToEnrich[currentIdx];
-      try {
-        const detail = await apiFetch(`/gcp/compute/instances/${encodeURIComponent(it)}`, apiKey);
-        if (detail) {
-          const entry = instanceMap.get(it);
-          if (entry) {
-            entry.specs = mergeDetailSpecs(entry.specs || {}, detail);
-          }
-          process.stdout.write("+");
+  await runTasksWithLimit(instancesToEnrich, 50, async (it) => {
+    try {
+      const detail = await apiQueue.fetch(`${BASE}/gcp/compute/instances/${encodeURIComponent(it)}`);
+      if (detail) {
+        const entry = instanceMap.get(it);
+        if (entry) {
+          entry.specs = mergeDetailSpecs(entry.specs || {}, detail);
         }
-      } catch (e) {
-        process.stdout.write("✗");
+        process.stdout.write("+");
       }
-      await sleep(CALL_DELAY_MS);
+    } catch (e) {
+      process.stdout.write("✗");
     }
-  };
-  await Promise.all(KEYS.map((key, i) => enrichWorker(key, i + 1)));
+  });
 
   console.log(`\n[GCP Write] Writing JSON files...`);
   const totalFiles = pivotAndWrite(instanceMap);
