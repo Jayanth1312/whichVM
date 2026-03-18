@@ -1,17 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async rewrites() {
-    const apiUrl =
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-    return [
-      {
-        // Proxy API calls to the backend server
-        source: "/api/:path*",
-        destination: `${apiUrl}/api/:path*`,
-      },
-    ];
-  },
+  // If you are no longer running a separate backend proxy server,
+  // there's no need to proxy /api/* requests. The frontend fetches
+  // static Blob storage files directly.
 };
 
 export default nextConfig;
