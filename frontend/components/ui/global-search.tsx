@@ -16,6 +16,7 @@ interface SearchHit {
   vCPUs: number;
   memoryGiB: number;
   provider: string;
+  family?: string;
 }
 
 const DEFAULT_REGIONS: Record<string, string> = {
@@ -27,6 +28,12 @@ const DEFAULT_REGIONS: Record<string, string> = {
 import { AmazonWebServices } from "@/app/icons/amazonIcon";
 import { MicrosoftAzure } from "@/app/icons/azureIcon";
 import { GoogleCloud } from "@/app/icons/gcpIcon";
+
+const SEARCH_REGIONS: Record<string, string[]> = {
+  aws: ["us-east-1", "eu-west-1"],
+  azure: ["eastus", "westeurope"],
+  gcp: ["us-central1", "europe-west1"],
+};
 
 const ProviderIcon = ({ provider }: { provider: string }) => {
   if (provider === "aws") return <AmazonWebServices className="w-4 h-4" />;
@@ -51,35 +58,41 @@ export function GlobalSearch() {
     async function loadAll() {
       setLoading(true);
       const providers = ["aws", "azure", "gcp"];
-      const masterList: SearchHit[] = [];
+      const masterMap: Record<string, SearchHit> = {};
 
       try {
-        const promises = providers.map(async (p) => {
-          try {
-            const region = DEFAULT_REGIONS[p];
-            const url = getDataUrl(`/${p}/${region}.msgpack.zst`);
-            const res = await cachedFetch(url);
-            if (!res.ok) return;
+        const promises = providers.flatMap((p) => {
+          const regions = SEARCH_REGIONS[p] || [];
+          return regions.map(async (region) => {
+            try {
+              const url = getDataUrl(`/${p}/${region}.msgpack.zst`);
+              const res = await cachedFetch(url);
+              if (!res.ok) return;
 
-            const arrayBuffer = await res.arrayBuffer();
-            const decompressed = zstdDecompress(new Uint8Array(arrayBuffer));
-            const data: any = decode(decompressed);
-            if (data?.instances) {
-              data.instances.forEach((inst: any) => {
-                masterList.push({
-                  instanceType: inst.n || "",
-                  vCPUs: inst.v || 0,
-                  memoryGiB: inst.m || 0,
-                  provider: p,
+              const arrayBuffer = await res.arrayBuffer();
+              const decompressed = zstdDecompress(new Uint8Array(arrayBuffer));
+              const data: any = decode(decompressed);
+              if (data?.instances) {
+                data.instances.forEach((inst: any) => {
+                  const key = `${p}-${inst.n}`;
+                  if (!masterMap[key]) {
+                    masterMap[key] = {
+                      instanceType: inst.n || "",
+                      vCPUs: inst.v || 0,
+                      memoryGiB: inst.m || 0,
+                      provider: p,
+                      family: inst.f || "",
+                    };
+                  }
                 });
-              });
+              }
+            } catch (e) {
+              // skip
             }
-          } catch (e) {
-            // skip
-          }
+          });
         });
         await Promise.all(promises);
-        if (active) setIndexedData(masterList);
+        if (active) setIndexedData(Object.values(masterMap));
       } catch (e) {
         // ignore
       } finally {
@@ -103,8 +116,26 @@ export function GlobalSearch() {
     }
 
     const filtered = indexedData
-      .filter((h) => h.instanceType.toLowerCase().includes(query))
-      .slice(0, 10);
+      .filter(
+        (h) =>
+          h.instanceType.toLowerCase().includes(query) ||
+          (h.family && h.family.toLowerCase().includes(query))
+      )
+      .sort((a, b) => {
+        const aType = a.instanceType.toLowerCase();
+        const bType = b.instanceType.toLowerCase();
+        // 1. Exact match first
+        if (aType === query) return -1;
+        if (bType === query) return 1;
+        // 2. Starts with query
+        const aStarts = aType.startsWith(query);
+        const bStarts = bType.startsWith(query);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+        // 3. Shorter length (closer match)
+        return aType.length - bType.length;
+      })
+      .slice(0, 40);
     setHits(filtered);
     setActiveIndex(-1);
   }, [q, indexedData]);
@@ -191,7 +222,7 @@ export function GlobalSearch() {
             exit={{ opacity: 0, y: -4 }}
             className="absolute left-0 right-0 mt-1 z-50 rounded-md border border-neutral-800 bg-neutral-900/95 backdrop-blur-md shadow-lg"
           >
-            <div className="py-1 max-h-64 overflow-y-auto">
+            <div className="py-1 max-h-[380px] overflow-y-auto">
               {hits.map((hit, i) => (
                 <div
                   key={`${hit.provider}-${hit.instanceType}-${i}`}
@@ -206,7 +237,9 @@ export function GlobalSearch() {
                   </div>
                   <div>
                     <div className="text-sm font-medium text-white truncate max-w-[160px] md:max-w-[220px]">
-                      {hit.instanceType}
+                      {hit.provider === "azure" && hit.family
+                        ? hit.family.replace(/_/g, " ")
+                        : hit.instanceType.replace(/^Standard_/i, "").replace(/_/g, " ")}
                     </div>
                     <div className="text-[11px] text-neutral-400">
                       {hit.vCPUs} vCPUs, {hit.memoryGiB} GiB RAM

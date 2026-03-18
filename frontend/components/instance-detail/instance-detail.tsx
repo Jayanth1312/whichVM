@@ -178,7 +178,6 @@ const PRICING_INTERVALS = [
 // ─── Commitment options (Sync with data-table.tsx) ──────────────
 const COMMITMENT_OPTIONS: Record<string, { label: string; value: string }[]> = {
   AWS: [
-    { value: "payasyougo", label: "Pay-as-you-go" },
     { value: "ri_1y_no", label: "Reserved 1y - No Upfront" },
     { value: "ri_1y_partial", label: "Reserved 1y - Partial Upfront" },
     { value: "ri_1y_all", label: "Reserved 1y - All Upfront" },
@@ -308,7 +307,11 @@ export function InstanceDetail({
   const [os, setOs] = React.useState("linux");
   const [pricingInterval, setPricingInterval] = React.useState("hourly");
   const [reservedPlan, setReservedPlan] = React.useState(
-    provider.toUpperCase() === "GCP" ? "ondemand" : "payasyougo",
+    provider.toUpperCase() === "GCP"
+      ? "ondemand"
+      : provider.toUpperCase() === "AWS"
+        ? "ri_1y_no"
+        : "payasyougo",
   );
   const [currency, setCurrency] = React.useState("usd");
 

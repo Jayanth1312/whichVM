@@ -139,7 +139,6 @@ const EXCHANGE_RATES: Record<string, { rate: number; symbol: string }> = {
 
 const COMMITMENT_OPTIONS: Record<string, FilterOption[]> = {
   AWS: [
-    { value: "payasyougo", label: "Pay-as-you-go" },
     { value: "ri_1y_no", label: "Reserved 1y - No Upfront" },
     { value: "ri_1y_partial", label: "Reserved 1y - Partial Upfront" },
     { value: "ri_1y_all", label: "Reserved 1y - All Upfront" },
@@ -1095,7 +1094,7 @@ export function ComparePage() {
   useEffect(() => {
     if (reservedPlan) return;
     const p = provider.toUpperCase();
-    if (p === "AWS") setReservedPlan("payasyougo");
+    if (p === "AWS") setReservedPlan("ri_1y_no");
     else if (p === "AZURE") setReservedPlan("payasyougo");
     else setReservedPlan("ondemand");
   }, [provider, reservedPlan]);
@@ -1308,7 +1307,7 @@ export function ComparePage() {
                     transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
                   />
                 )}
-                FULL SPECS
+                FULL
               </button>
               <button
                 onClick={() => setCompareMode("diff")}

@@ -1238,6 +1238,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
             value={reservedPlan}
             options={COMMITMENT_OPTIONS[provider.toUpperCase()] || []}
             onSelect={setReservedPlan}
+            className="w-[180px]"
             dropdownWidth="w-[200px]"
           />
         </div>
