@@ -1242,24 +1242,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
           />
         </div>
 
-        {/* Azure Hybrid Benefit Filter */}
-        {provider.toUpperCase() === "AZURE" && (
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[11px] font-bold text-neutral-500 tracking-wider ml-1 whitespace-nowrap">
-              Hybrid Benefit
-            </span>
-            <FilterDropdown
-              label="Hybrid Benefit"
-              value={azureHybridBenefit}
-              options={[
-                { value: "No", label: "No" },
-                { value: "Yes", label: "Yes" },
-              ]}
-              onSelect={setAzureHybridBenefit}
-              dropdownWidth="w-[160px]"
-            />
-          </div>
-        )}
+
 
         {/* Pricing Unit Filter */}
         <div className="flex flex-col gap-1.5">

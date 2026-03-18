@@ -1414,23 +1414,7 @@ export function ComparePage() {
                             <div className="flex flex-wrap items-center gap-6">
                               {/* Plan filters removed */}
 
-                              {provider.toUpperCase() === "AZURE" && (
-                                <div className="flex flex-col gap-1.5 min-w-[140px]">
-                                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest ml-1">
-                                    Hybrid Benefit
-                                  </span>
-                                  <FilterDropdown
-                                    label="Hybrid Benefit"
-                                    value={azureHybridBenefit}
-                                    options={[
-                                      { value: "No", label: "No" },
-                                      { value: "Yes", label: "Yes" },
-                                    ]}
-                                    onSelect={setAzureHybridBenefit}
-                                    className="h-9"
-                                  />
-                                </div>
-                              )}
+
 
                               <div className="flex flex-col gap-1.5 min-w-[140px]">
                                 <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest ml-1">

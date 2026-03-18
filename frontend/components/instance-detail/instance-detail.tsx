@@ -208,7 +208,7 @@ const COMMITMENT_OPTIONS: Record<string, { label: string; value: string }[]> = {
 
 const COMMITMENT_LABELS: Record<string, string> = {
   AWS: "Reserved/Savings Plan",
-  AZURE: "Hybrid Benefit",
+  AZURE: "Payment Term",
   GCP: "Commitment",
 };
 
