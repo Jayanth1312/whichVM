@@ -1,0 +1,40 @@
+minor changes
+
+# Conflicts:
+#	frontend/README.md
+#	frontend/components/instance-compare.tsx
+#	frontend/components/instance-detail/instance-detail.tsx
+#	frontend/components/instances-table/data-table.tsx
+#	frontend/next.config.ts
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# interactive rebase in progress; onto 7eb1eb3
+# Last command done (1 command done):
+#    pick c8971fb # minor changes
+# No commands remaining.
+# You are currently rebasing branch 'main' on '7eb1eb3'.
+#
+# Changes to be committed:
+#	deleted:    frontend/README.md
+#	deleted:    frontend/app/favicon.ico
+#	new file:   frontend/app/icon.svg
+#	modified:   frontend/app/layout.tsx
+#	modified:   frontend/components/instance-compare.tsx
+#	modified:   frontend/components/instance-detail/instance-detail.tsx
+#	modified:   frontend/components/instances-table/data-table.tsx
+#	modified:   frontend/components/ui/checkbox.tsx
+#	modified:   frontend/components/ui/filter-dropdown.tsx
+#	modified:   frontend/components/ui/global-search.tsx
+#	modified:   frontend/components/ui/header.tsx
+#	modified:   frontend/lib/cache.ts
+#	modified:   frontend/next.config.ts
+#	deleted:    frontend/public/file.svg
+#	deleted:    frontend/public/globe.svg
+#	new file:   frontend/public/logo.svg
+#	deleted:    frontend/public/next.svg
+#	deleted:    frontend/public/vercel.svg
+#	deleted:    frontend/public/window.svg
+#	deleted:    frontend/test-data-fetch.js
+#
