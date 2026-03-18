@@ -89,6 +89,12 @@ cd frontend
 npm install
 ```
 
+Optionally, create a `.env` file in the `frontend/` directory to configure the Blob CDN URL. This allows the frontend to fetch data files directly from the CDN instead of proxying through the backend:
+
+```bash
+NEXT_PUBLIC_BLOB_CDN_URL=https://your-project-id.public.blob.vercel-storage.com
+```
+
 **Run Development Server:**
 ```bash
 npm run dev
