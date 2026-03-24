@@ -364,14 +364,27 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
   const [azureHybridBenefit, setAzureHybridBenefit] = React.useState("No"); // Yes, No
   const [isRestored, setIsRestored] = React.useState(false);
 
-  // Initialize allData from module-level store if available (survives remounts)
-  const initKey = `${provider.toLowerCase()}:${initialRegion || DEFAULT_REGIONS[provider] || "eastus"}`;
+  const targetKey = `${provider.toLowerCase()}:${region || initialRegion || DEFAULT_REGIONS[provider] || "eastus"}`;
+  const [loadedDataKey, setLoadedDataKey] = React.useState(targetKey);
+
   const [allData, setAllData] = React.useState<any[]>(
-    () => regionStore[initKey] ?? [],
+    () => regionStore[targetKey] ?? [],
   );
   const [isLoading, setIsLoading] = React.useState(
-    () => !(regionStore[initKey]?.length > 0),
+    () => !(regionStore[targetKey]?.length > 0),
   );
+
+  // Synchronously switch data during render to avoid stale data mapping lag
+  if (targetKey !== loadedDataKey) {
+    setLoadedDataKey(targetKey);
+    if (regionStore[targetKey]?.length) {
+      setAllData(regionStore[targetKey]);
+      setIsLoading(false);
+    } else {
+      setAllData([]);
+      setIsLoading(true);
+    }
+  }
 
   // Restore filter state from localStorage when provider changes
   React.useEffect(() => {
@@ -463,25 +476,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
     sorting,
   ]);
 
-  const columns = React.useMemo(() => {
-    const cols = getColumns(provider);
-    return cols.map((c: any) => {
-      const isAdv =
-        c.meta?.isAdvanced ||
-        ["vcpus", "memory", "storage"].includes(c.accessorKey);
-      return isAdv ? { ...c, filterFn: advancedFilterFn } : c;
-    });
-  }, [provider]);
 
-  React.useEffect(() => {
-    const visibility: VisibilityState = {};
-    columns.forEach((col: any) => {
-      if (col.meta?.isAdvanced) {
-        visibility[col.id || col.accessorKey] = false;
-      }
-    });
-    setColumnVisibility(visibility);
-  }, [columns]);
 
   // ─── Primary data load: instant from memory, or fetch + decode ────
   React.useEffect(() => {
@@ -873,6 +868,20 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
       ttd: { rate: 6.75, symbol: "TT$" },
     };
     const currencyInfo = exchangeRates[currency] || { rate: 1, symbol: "$" };
+    const precision = unitLabel === "seconds" || unitLabel === "minutes" ? 6 : 4;
+    const spacer = currencyInfo.symbol.length > 1 ? " " : "";
+    const displayUnit =
+      pricing === "hourly"
+        ? "hourly"
+        : pricing === "weekly"
+          ? "weekly"
+          : pricing === "monthly"
+            ? "monthly"
+            : pricing === "yearly"
+              ? "yearly"
+              : pricing === "minutes"
+                ? "minutely"
+                : "secondly";
 
     return allData.map((item: any, index: number) => {
       // New format: pricing is flat in item.pr (already region-specific)
@@ -897,24 +906,8 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
         }
 
         const calculated = (baseCost / unitValue) * mult;
-        const precision =
-          unitLabel === "seconds" || unitLabel === "minutes" ? 6 : 4;
-        const displayUnit =
-          pricing === "hourly"
-            ? "hourly"
-            : pricing === "weekly"
-              ? "weekly"
-              : pricing === "monthly"
-                ? "monthly"
-                : pricing === "yearly"
-                  ? "yearly"
-                  : pricing === "minutes"
-                    ? "minutely"
-                    : "secondly";
-
         const convertedCost = calculated * currencyInfo.rate;
         const formattedPrice = Number(convertedCost).toFixed(precision);
-        const spacer = currencyInfo.symbol.length > 1 ? " " : "";
 
         return `${currencyInfo.symbol}${spacer}${formattedPrice} ${displayUnit}${pricingUnitSuffix}`;
       };
@@ -1046,6 +1039,52 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
     });
   }, [allData, provider, region, pricing, currency, pricingUnit, reservedPlan]);
 
+  // Triggering incremental rebuild for Turbopack cache flush
+  const columns = React.useMemo(() => {
+    const cols = getColumns(provider);
+    return cols.map((c: any) => {
+      const isAdv =
+        c.meta?.isAdvanced ||
+        ["vcpus", "memory", "storage"].includes(c.accessorKey);
+      
+      const colClone = { ...c };
+      const key = colClone.accessorKey || colClone.id;
+
+      if (key && data.length > 0 && key !== "select") {
+        const isMono = key === "apiName";
+        const charWidth = isMono ? 8 : 9.5;
+        const padding = isMono ? 48 : 42;
+        
+        let maxLen = 0;
+        const scanLimit = Math.min(data.length, 100);
+        for (let i = 0; i < scanLimit; i++) {
+          const val = (data[i] as any)[key];
+          if (val != null) {
+            const len = String(val).length;
+            if (len > maxLen) maxLen = len;
+          }
+        }
+        
+        colClone.size = Math.max(
+          colClone.size || colClone.minSize || 100,
+          Math.ceil(maxLen * charWidth + padding)
+        );
+      }
+
+      return isAdv ? { ...colClone, filterFn: advancedFilterFn } : colClone;
+    });
+  }, [provider, data]);
+
+  React.useEffect(() => {
+    const visibility: VisibilityState = {};
+    columns.forEach((col: any) => {
+      if (col.meta?.isAdvanced) {
+        visibility[col.id || col.accessorKey] = false;
+      }
+    });
+    setColumnVisibility(visibility);
+  }, [columns]);
+
   const table = useReactTable({
     data,
     columns,
@@ -1071,9 +1110,8 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 42,
-    measureElement: (element) => element.getBoundingClientRect().height,
-    overscan: 20,
+    estimateSize: () => 45,
+    overscan: 40,
     scrollMargin: 0,
   });
 
@@ -1224,6 +1262,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
               });
             }}
             searchable
+            className="w-[180px]"
             dropdownWidth="w-[320px]"
           />
         </div>
@@ -1318,7 +1357,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
       <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 overflow-hidden shadow-2xl relative">
         <div
           ref={parentRef}
-          className="overflow-auto custom-scrollbar max-h-[calc(100vh-240px)] min-h-[400px] relative"
+          className="overflow-auto custom-scrollbar max-h-[calc(100vh-210px)] min-h-[400px] relative"
         >
           <table
             style={{ width: table.getTotalSize() }}
@@ -1454,7 +1493,6 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                   <tr
                     key={row.id}
                     data-index={virtualRow.index}
-                    ref={rowVirtualizer.measureElement}
                     className={`border-b border-neutral-800 transition-colors cursor-pointer ${
                       isSelected ? "bg-blue-950/30!" : "hover:bg-neutral-800/20"
                     }`}

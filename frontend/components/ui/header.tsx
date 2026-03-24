@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { GlobalSearch } from "@/components/ui/global-search";
 import { AmazonWebServices } from "@/app/icons/amazonIcon";
 import { MicrosoftAzure } from "@/app/icons/azureIcon";
@@ -43,12 +44,6 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
     return propActiveProvider || "AWS";
   }, [pathname, searchParams, propActiveProvider]);
 
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
-  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const transitionLockRef = useRef(false);
-  const rafRef = useRef<number | null>(null);
-
   const [localActive, setLocalActive] = useState(detectedProvider);
 
   // Keep local state in sync with URL
@@ -57,16 +52,9 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
   }, [detectedProvider]);
 
   const handleProviderChange = (provider: string) => {
-    // Lock indicator position during route transition to prevent jitter
-    transitionLockRef.current = true;
     setLocalActive(provider);
     const defaultRegion = DEFAULT_REGIONS[provider] || "eastus";
     router.push(`/${provider.toLowerCase()}/${defaultRegion}`);
-
-    // Release lock after animation completes
-    setTimeout(() => {
-      transitionLockRef.current = false;
-    }, 600);
   };
 
   const handleHomeClick = () => {
@@ -74,74 +62,14 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
     router.push(`/${localActive.toLowerCase()}/${defaultRegion}`);
   };
 
-  useEffect(() => {
-    const SCROLL_IN_THRESHOLD = 90;
-    const SCROLL_OUT_THRESHOLD = 10;
-
-    const handleScroll = () => {
-      const y = window.scrollY;
-      setIsScrolled((prev) => {
-        if (!prev && y > SCROLL_IN_THRESHOLD) return true;
-        if (prev && y < SCROLL_OUT_THRESHOLD) return false;
-        return prev;
-      });
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Update sliding indicator position whenever active tab changes
-  useEffect(() => {
-    const updateIndicator = () => {
-      const el = tabRefs.current[localActive];
-      if (el) {
-        setIndicator({ left: el.offsetLeft, width: el.offsetWidth });
-      }
-    };
-
-    // Always update immediately on tab change (this is intentional)
-    updateIndicator();
-
-    // ResizeObserver only updates when NOT transitioning
-    const resizeObserver = new ResizeObserver(() => {
-      if (transitionLockRef.current) return;
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(updateIndicator);
-    });
-
-    const activeEl = tabRefs.current[localActive];
-    if (activeEl) {
-      resizeObserver.observe(activeEl.parentElement!);
-    }
-
-    return () => {
-      resizeObserver.disconnect();
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [localActive]);
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-50 w-full transition-all duration-300",
-        isScrolled ? "bg-black/80 backdrop-blur-md" : "bg-black",
-      )}
-    >
-      <div className="relative mx-auto w-full border-b border-neutral-900">
+    <header className="sticky top-0 z-50 w-full bg-black/80 backdrop-blur-md border-b border-neutral-900">
+      <div className="mx-auto w-full flex h-16 items-center justify-between px-4 sm:px-6">
+        
+        {/* Left: Brand */}
         <div
           onClick={handleHomeClick}
-          className="pointer-events-auto cursor-pointer absolute left-4 sm:left-6 z-10 flex items-center transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-          style={{
-            top: "20px",
-            transform: isScrolled
-              ? "translateY(-4px) scale(0.85)"
-              : "translateY(0px) scale(1)",
-          }}
+          className="flex items-center gap-2.5 cursor-pointer group"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -168,15 +96,59 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
               strokeLinejoin="miter"
             />
           </svg>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-normal text-neutral-800 transition-colors group-hover:text-neutral-600">
+              /
+            </span>
+          </div>
+          <span className="text-[18px] font-semibold tracking-tight text-white transition-opacity group-hover:opacity-80">
+            WhichVM
+          </span>
         </div>
 
-        {/* Global Search & Compare Button - Top Right Absolute Position */}
-        <div
-          className="absolute right-4 sm:right-6 top-3 flex items-center gap-3 z-30 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-          style={{
-            transform: isScrolled ? "translateY(-4px)" : "translateY(0px)",
-          }}
-        >
+        {/* Center: Navigation */}
+        <nav className="flex items-center h-full gap-2 overflow-x-auto">
+          {providers.map((provider) => {
+            const defaultRegion = DEFAULT_REGIONS[provider] || "eastus";
+            return (
+              <Link
+                key={provider}
+                href={`/${provider.toLowerCase()}/${defaultRegion}`}
+                onClick={() => setLocalActive(provider)}
+                prefetch={true}
+                className={cn(
+                  "relative flex h-full items-center px-1 text-[15px] font-medium transition-colors duration-200 cursor-pointer",
+                  localActive === provider
+                    ? "text-white"
+                    : "text-neutral-500 hover:text-neutral-200",
+                )}
+              >
+                <span
+                  className={cn(
+                    "rounded-md px-3 py-1.5 transition-colors flex items-center gap-1.5",
+                    localActive === provider
+                      ? "bg-neutral-900 text-white"
+                      : "hover:bg-neutral-900",
+                  )}
+                >
+                  {provider.toLowerCase() === "aws" && (
+                    <AmazonWebServices className="w-4 h-4" />
+                  )}
+                  {provider.toLowerCase() === "azure" && (
+                    <MicrosoftAzure className="w-4 h-4" />
+                  )}
+                  {provider.toLowerCase() === "gcp" && (
+                    <GoogleCloud className="w-4 h-4" />
+                  )}
+                  {provider}
+                </span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-3">
           <GlobalSearch />
           <Button
             variant="outline"
@@ -199,7 +171,7 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
               Compare
             </span>
           </Button>
-          <Button
+          {/* <Button
             variant="outline"
             size="sm"
             asChild
@@ -213,83 +185,9 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
               <GitHub className="w-4 h-4 text-white" fill="none" />
               <span className="text-[13px] font-medium text-white">Star</span>
             </a>
-          </Button>
+          </Button> */}
         </div>
 
-        <div
-          className={cn(
-            "flex items-center justify-between px-4 sm:px-6 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-            isScrolled
-              ? "h-0 opacity-0 translate-y-[-10px] overflow-hidden"
-              : "h-16 opacity-100 translate-y-0",
-          )}
-        >
-          <div
-            onClick={handleHomeClick}
-            className="flex items-center gap-2.5 cursor-pointer group"
-          >
-            <div className="w-[28px]" />
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-normal text-neutral-800 transition-colors group-hover:text-neutral-600">
-                /
-              </span>
-            </div>
-            <span className="text-[18px] font-semibold tracking-tight text-white transition-opacity group-hover:opacity-80">
-              WhichVM
-            </span>
-          </div>
-        </div>
-
-        {/* Bottom Row: Navigation + Persistent Elements */}
-        <nav className="flex h-14 items-center justify-between px-4 sm:px-6 relative">
-          <div className="flex items-center h-full">
-            <div
-              className="flex items-center transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-              style={{ width: isScrolled ? "38px" : "0px" }}
-            >
-              {/* Spacer for the absolute icon when scrolled */}
-            </div>
-
-            {/* Tab list */}
-            <div className="relative flex h-full items-center gap-2">
-              {providers.map((provider) => (
-                <button
-                  key={provider}
-                  ref={(el) => {
-                    tabRefs.current[provider] = el;
-                  }}
-                  onClick={() => handleProviderChange(provider)}
-                  className={cn(
-                    "relative flex h-full items-center px-2 text-[15px] font-medium transition-colors duration-200 cursor-pointer",
-                    localActive === provider
-                      ? "text-white"
-                      : "text-neutral-500 hover:text-neutral-200",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "rounded-md px-3 py-2 transition-colors flex items-center gap-1.5",
-                      localActive === provider
-                        ? "bg-neutral-900 text-white"
-                        : "hover:bg-neutral-900",
-                    )}
-                  >
-                    {provider.toLowerCase() === "aws" && (
-                      <AmazonWebServices className="w-4 h-4" />
-                    )}
-                    {provider.toLowerCase() === "azure" && (
-                      <MicrosoftAzure className="w-4 h-4" />
-                    )}
-                    {provider.toLowerCase() === "gcp" && (
-                      <GoogleCloud className="w-4 h-4" />
-                    )}
-                    {provider}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </nav>
       </div>
     </header>
   );
