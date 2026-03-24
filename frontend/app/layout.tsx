@@ -22,6 +22,7 @@ export const metadata: Metadata = {
 
 import { ScrollbarHandler } from "@/components/scrollbar-handler";
 import { Header } from "@/components/ui/header";
+import { Analytics } from "@vercel/analytics/react";
 
 export default function RootLayout({
   children,
@@ -40,6 +41,7 @@ export default function RootLayout({
             <ScrollbarHandler />
             <Header />
             {children}
+            <Analytics />
           </TooltipProvider>
         </ThemeProvider>
       </body>
