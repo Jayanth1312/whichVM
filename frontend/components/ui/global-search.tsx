@@ -36,9 +36,14 @@ const SEARCH_REGIONS: Record<string, string[]> = {
 };
 
 const ProviderIcon = ({ provider }: { provider: string }) => {
-  if (provider === "aws") return <AmazonWebServices className="w-4 h-4" />;
-  if (provider === "azure") return <MicrosoftAzure className="w-4 h-4" />;
-  return <GoogleCloud className="w-4 h-4" />;
+  if (provider === "aws")
+    return (
+      <div className="w-5 h-5 rounded-full bg-zinc-900 dark:bg-transparent flex items-center justify-center overflow-hidden shrink-0">
+        <AmazonWebServices className="w-3.5 h-3.5 translate-y-px dark:translate-y-0" />
+      </div>
+    );
+  if (provider === "azure") return <MicrosoftAzure className="w-4 h-4 shrink-0" />;
+  return <GoogleCloud className="w-4 h-4 shrink-0" />;
 };
 
 export function GlobalSearch() {
@@ -165,10 +170,10 @@ export function GlobalSearch() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full max-w-[240px] md:max-w-[320px]"
+      className="relative w-full md:max-w-[320px]"
     >
-      <div className="relative flex items-center">
-        <Search className="absolute left-3 h-4 w-4 text-neutral-500" />
+      <div className="relative flex items-center w-full">
+        <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
         <Input
           ref={inputRef}
           value={q}
@@ -197,14 +202,14 @@ export function GlobalSearch() {
             }
           }}
           placeholder={loading ? "Warming index..." : "Search"}
-          className="pl-9 pr-8 h-10 rounded-lg bg-neutral-900 border-neutral-800 text-sm focus-visible:ring-0 focus-visible:border-neutral-800"
+          className="w-full pl-9 pr-8 h-9 md:h-10 rounded-lg bg-secondary border-border text-sm focus-visible:ring-0 focus-visible:border-border"
         />
         {loading && (
-          <Loader2 className="absolute right-9 h-4 w-4 animate-spin text-neutral-500" />
+          <Loader2 className="absolute right-9 h-4 w-4 animate-spin text-muted-foreground" />
         )}
         {q && (
           <X
-            className="absolute right-3 h-4 w-4 text-neutral-500 hover:text-white cursor-pointer"
+            className="absolute right-3 h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer"
             onClick={() => {
               setQ("");
               setHits([]);
@@ -220,7 +225,7 @@ export function GlobalSearch() {
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
-            className="absolute left-0 right-0 mt-1 z-50 rounded-md border border-neutral-800 bg-neutral-900/95 backdrop-blur-md shadow-lg"
+            className="absolute left-0 right-0 mt-1 z-50 rounded-md border border-border bg-popover/95 backdrop-blur-md shadow-lg"
           >
             <div className="py-1 max-h-[380px] overflow-y-auto">
               {hits.map((hit, i) => (
@@ -228,20 +233,20 @@ export function GlobalSearch() {
                   key={`${hit.provider}-${hit.instanceType}-${i}`}
                   onClick={() => handleSelect(hit)}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-neutral-800/80 transition-colors",
-                    i === activeIndex && "bg-neutral-800/80"
+                    "flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-secondary/80 transition-colors",
+                    i === activeIndex && "bg-secondary/80"
                   )}
                 >
-                  <div className="w-5 h-5 flex items-center justify-center">
+                  <div className="flex items-center justify-center shrink-0 w-4 h-4 sm:w-5 sm:h-5">
                     <ProviderIcon provider={hit.provider} />
                   </div>
-                  <div>
-                    <div className="text-sm font-medium text-white truncate max-w-[160px] md:max-w-[220px]">
+                  <div className="overflow-hidden w-full">
+                    <div className="text-sm font-medium text-foreground truncate w-full">
                       {hit.provider === "azure" && hit.family
                         ? hit.family.replace(/_/g, " ")
                         : hit.instanceType.replace(/^Standard_/i, "").replace(/_/g, " ")}
                     </div>
-                    <div className="text-[11px] text-neutral-400">
+                    <div className="text-[11px] text-muted-foreground truncate w-full">
                       {hit.vCPUs} vCPUs, {hit.memoryGiB} GiB RAM
                     </div>
                   </div>

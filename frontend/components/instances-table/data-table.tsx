@@ -22,11 +22,13 @@ import {
   Info,
   ArrowUp,
   X,
+  ListFilter,
 } from "lucide-react";
 import {
   FilterDropdown,
   type FilterOption,
 } from "@/components/ui/filter-dropdown";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -293,33 +295,33 @@ function Filter({ column }: { column: Column<any, unknown> }) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={isAdvanced ? ">=0" : `Filter ${header}`}
-        className="h-8 bg-black! border-neutral-800! text-[11px] text-white placeholder:text-neutral-600 rounded-lg w-full pl-3 focus:ring-0! focus-visible:ring-0! shadow-none border"
+        className="h-8 bg-background! border-border! text-[11px] text-foreground placeholder:text-muted-foreground rounded-lg w-full pl-3 focus:ring-0! focus-visible:ring-0! shadow-none border"
       />
       {showTooltip && (
         <TooltipProvider>
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
-              <button className="text-neutral-500 hover:text-white transition-colors shrink-0">
+              <button className="text-muted-foreground hover:text-foreground transition-colors shrink-0">
                 <Info className="h-3.5 w-3.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent className="bg-neutral-900 border-neutral-800 text-[11px] max-w-[240px] p-3 shadow-xl">
+            <TooltipContent className="bg-popover border-border text-[11px] max-w-[240px] p-3">
               <div className="space-y-2">
-                <p className="font-bold text-white">
+                <p className="font-bold text-foreground">
                   Advanced Filter Expressions
                 </p>
-                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-neutral-400">
-                  <span className="text-white">10..20</span> <span>Range</span>
-                  <span className="text-white">&gt;=10</span>{" "}
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-muted-foreground">
+                  <span className="text-foreground">10..20</span> <span>Range</span>
+                  <span className="text-foreground">&gt;=10</span>{" "}
                   <span>Greater/Equal</span>
-                  <span className="text-white">&&, ||</span>{" "}
+                  <span className="text-foreground">&&, ||</span>{" "}
                   <span>Logical and/or</span>
-                  <span className="text-white">!</span> <span>Not</span>
+                  <span className="text-foreground">!</span> <span>Not</span>
                 </div>
-                <p className="text-[10px] text-neutral-500 pt-1 border-t border-neutral-800">
+                <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">
                   Examples:{" "}
-                  <code className="text-emerald-400">&gt;=8 && &lt;=32</code>,{" "}
-                  <code className="text-emerald-400">16..64</code>
+                  <code className="text-emerald-500">&gt;=8 && &lt;=32</code>,{" "}
+                  <code className="text-emerald-500">16..64</code>
                 </p>
               </div>
             </TooltipContent>
@@ -615,6 +617,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
   const [fetchedRegions, setFetchedRegions] = React.useState<FilterOption[]>(
     [],
   );
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = React.useState(false);
 
   const CURRENCIES = [
     { label: "USD - US Dollar", value: "usd" },
@@ -1046,7 +1049,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
       const isAdv =
         c.meta?.isAdvanced ||
         ["vcpus", "memory", "storage"].includes(c.accessorKey);
-      
+
       const colClone = { ...c };
       const key = colClone.accessorKey || colClone.id;
 
@@ -1054,7 +1057,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
         const isMono = key === "apiName";
         const charWidth = isMono ? 8 : 9.5;
         const padding = isMono ? 48 : 42;
-        
+
         let maxLen = 0;
         const scanLimit = Math.min(data.length, 100);
         for (let i = 0; i < scanLimit; i++) {
@@ -1064,7 +1067,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
             if (len > maxLen) maxLen = len;
           }
         }
-        
+
         colClone.size = Math.max(
           colClone.size || colClone.minSize || 100,
           Math.ceil(maxLen * charWidth + padding)
@@ -1157,204 +1160,223 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
 
   return (
     <div className="w-full">
-      <div className="flex flex-wrap items-end gap-3 mb-6">
-        {/* Columns Dropdown */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-bold text-neutral-500 tracking-wider ml-1">
-            Columns
-          </span>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              asChild
-              className="focus-visible:ring-0 focus:ring-0 focus:outline-none border-none shadow-none outline-none cursor-pointer"
-            >
-              <button className="flex items-center justify-between w-[160px] bg-neutral-900 border border-neutral-800 h-10 text-white rounded-lg px-4 hover:bg-neutral-800 transition-colors text-sm outline-none focus:outline-none focus-visible:outline-none">
-                <span className="truncate">Select Display</span>
-                <ChevronDown
-                  className="h-4 w-4 text-neutral-500"
-                  strokeWidth={2}
-                />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              className="bg-neutral-900 border-neutral-800 text-white min-w-[220px] shadow-2xl"
-            >
-              <div className="p-2 flex gap-2 border-b border-neutral-800 mb-1">
-                <button
-                  onClick={() => table.toggleAllColumnsVisible(true)}
-                  className="text-[10px] bg-neutral-800 hover:bg-neutral-700 px-2 py-1 rounded transition-colors uppercase font-bold text-neutral-400"
-                >
-                  Select All
+      {/* Mobile Filter Toggle */}
+      <div
+        className={cn(
+          "md:hidden flex items-center justify-between border-b border-border py-3 cursor-pointer hover:bg-secondary/30 transition-colors -mx-4 px-4 sm:-mx-6 sm:px-6",
+          !isMobileFiltersOpen && "mb-5"
+        )}
+        onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+      >
+        <div className="flex items-center gap-2">
+          <ListFilter className="w-4 h-4 text-muted-foreground" />
+          <span className="text-[14px] font-semibold text-foreground">Instance Filters</span>
+        </div>
+        <ChevronDown className={cn("w-5 h-5 text-muted-foreground transition-transform duration-300", isMobileFiltersOpen && "rotate-180")} />
+      </div>
+
+      <div className={cn(
+        "mb-4 md:mb-6",
+        isMobileFiltersOpen ? "block" : "hidden md:block"
+      )}>
+        <div className="grid grid-cols-2 md:flex md:flex-wrap items-end gap-3 w-full pt-4 pb-0 md:pt-0 md:pb-0">
+
+          {/* Columns Dropdown */}
+          <div className="flex flex-col gap-1.5 col-span-1 md:col-span-none">
+            <span className="text-[11px] font-bold text-muted-foreground tracking-wider ml-1">
+              Columns
+            </span>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                asChild
+                className="focus-visible:ring-0 focus:ring-0 focus:outline-none shadow-none outline-none cursor-pointer"
+              >
+                <button className="flex items-center justify-between w-full md:w-[160px] bg-secondary border border-border h-10 text-foreground rounded-lg px-4 hover:bg-accent transition-colors text-sm outline-none focus:outline-none focus-visible:outline-none">
+                  <span className="truncate">Display</span>
+                  <ChevronDown
+                    className="h-4 w-4 text-muted-foreground shrink-0 ml-2"
+                    strokeWidth={2}
+                  />
                 </button>
-                <button
-                  onClick={() => {
-                    const reset: VisibilityState = {};
-                    columns.forEach((col: any) => {
-                      if (col.meta?.isAdvanced) {
-                        reset[col.id || col.accessorKey] = false;
-                      }
-                    });
-                    setColumnVisibility(reset);
-                  }}
-                  className="text-[10px] bg-neutral-800 hover:bg-neutral-700 px-2 py-1 rounded transition-colors uppercase font-bold text-neutral-400"
-                >
-                  Reset
-                </button>
-              </div>
-              <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                {table
-                  .getAllColumns()
-                  .filter((c) => c.getCanHide())
-                  .map((c) => (
-                    <DropdownMenuCheckboxItem
-                      key={c.id}
-                      className="capitalize py-2"
-                      checked={c.getIsVisible()}
-                      onCheckedChange={(v) => c.toggleVisibility(!!v)}
-                    >
-                      {c.columnDef.header?.toString() || c.id}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="bg-popover border-border text-foreground min-w-[220px]"
+              >
+                <div className="p-2 flex gap-2 border-b border-border mb-1">
+                  <button
+                    onClick={() => table.toggleAllColumnsVisible(true)}
+                    className="text-[10px] bg-accent hover:bg-accent/80 px-2 py-1 rounded transition-colors uppercase font-bold text-muted-foreground"
+                  >
+                    Select All
+                  </button>
+                  <button
+                    onClick={() => {
+                      const reset: VisibilityState = {};
+                      columns.forEach((col: any) => {
+                        if (col.meta?.isAdvanced) {
+                          reset[col.id || col.accessorKey] = false;
+                        }
+                      });
+                      setColumnVisibility(reset);
+                    }}
+                    className="text-[10px] bg-accent hover:bg-accent/80 px-2 py-1 rounded transition-colors uppercase font-bold text-muted-foreground"
+                  >
+                    Reset
+                  </button>
+                </div>
+                <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                  {table
+                    .getAllColumns()
+                    .filter((c) => c.getCanHide())
+                    .map((c) => (
+                      <DropdownMenuCheckboxItem
+                        key={c.id}
+                        className="capitalize py-2"
+                        checked={c.getIsVisible()}
+                        onCheckedChange={(v) => c.toggleVisibility(!!v)}
+                      >
+                        {c.columnDef.header?.toString() || c.id}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Pricing Unit Filter */}
+          <div className="flex flex-col gap-1.5 col-span-1 md:col-span-none">
+            <span className="text-[11px] font-bold text-muted-foreground tracking-wider ml-1">
+              Pricing Unit
+            </span>
+            <FilterDropdown
+              label="Pricing Unit"
+              value={pricingUnit}
+              options={[
+                { value: "instance", label: "Instance" },
+                { value: "vcpu", label: "vCPU" },
+                { value: "ecu", label: "ECU" },
+                { value: "memory", label: "Memory" },
+              ]}
+              onSelect={setPricingUnit}
+              className="w-full md:w-[150px]"
+              dropdownWidth="w-full md:w-[180px]"
+            />
+          </div>
+
+          {/* Pricing Filter */}
+          <div className="flex flex-col gap-1.5 col-span-1 md:col-span-none">
+            <span className="text-[11px] font-bold text-muted-foreground tracking-wider ml-1">
+              Pricing
+            </span>
+            <FilterDropdown
+              label="Pricing"
+              value={pricing}
+              options={[
+                { value: "seconds", label: "Per second" },
+                { value: "minutes", label: "Per minute" },
+                { value: "hourly", label: "Per hour" },
+                { value: "weekly", label: "Per week" },
+                { value: "monthly", label: "Per month" },
+                { value: "yearly", label: "Per year" },
+              ]}
+              onSelect={setPricing}
+              className="w-full md:w-[160px]"
+              dropdownWidth="w-full md:w-[180px]"
+            />
+          </div>
+
+          {/* Currency Filter */}
+          <div className="flex flex-col gap-1.5 col-span-1 md:col-span-none">
+            <span className="text-[11px] font-bold text-muted-foreground tracking-wider ml-1">
+              Currency
+            </span>
+            <FilterDropdown
+              label="Currency"
+              value={currency}
+              options={CURRENCIES}
+              onSelect={setCurrency}
+              searchable
+              className="w-full md:w-[160px]"
+              dropdownWidth="w-[calc(100vw-2rem)] md:w-[280px]"
+            />
+          </div>
+
+          {/* Payment Term Filter */}
+          <div className="flex flex-col gap-1.5 col-span-2 md:col-span-none">
+            <span className="text-[11px] font-bold text-muted-foreground tracking-wider ml-1 whitespace-nowrap">
+              Payment Term
+            </span>
+            <FilterDropdown
+              label="Payment Term"
+              value={reservedPlan}
+              options={COMMITMENT_OPTIONS[provider.toUpperCase()] || []}
+              onSelect={setReservedPlan}
+              className="w-full md:w-[180px]"
+              dropdownWidth="w-[calc(100vw-2rem)] md:w-[200px]"
+            />
+          </div>
+
+          {/* Region Filter */}
+          <div className="flex flex-col gap-1.5 col-span-2 md:col-span-none">
+            <span className="text-[11px] font-bold text-muted-foreground tracking-wider ml-1">
+              Region
+            </span>
+            <FilterDropdown
+              label="Region"
+              value={region}
+              options={regionsData}
+              onSelect={(val) => {
+                const cacheKey = `${provider.toLowerCase()}:${val}`;
+                if (regionStore[cacheKey]?.length) {
+                  setAllData(regionStore[cacheKey]);
+                  setIsLoading(false);
+                }
+                setRegion(val);
+                window.history.replaceState(null, "", `/${provider.toLowerCase()}/${val}`);
+                saveFilterState(provider, {
+                  region: val,
+                  pricing,
+                  currency,
+                  pricingUnit,
+                  reservedPlan,
+                  columnFilters: columnFilters as { id: string; value: unknown; }[],
+                  sorting: sorting as { id: string; desc: boolean }[],
+                });
+              }}
+              searchable
+              className="w-full md:w-[180px]"
+              dropdownWidth="w-[calc(100vw-2rem)] md:w-[320px]"
+            />
+          </div>
+
+          {/* Desktop Clear Filters (Hidden on mobile) */}
+          <div className="hidden md:flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold transparent uppercase tracking-wider ml-1 select-none opacity-0">
+              Spacing
+            </span>
+            <Button
+              variant="ghost"
+              onClick={clearFilters}
+              className="text-blue-600 hover:text-blue-500 bg-transparent border-none hover:bg-blue-100 dark:hover:bg-blue-950/40 px-4 font-medium h-10! rounded-lg shadow-none transition-colors cursor-pointer"
+            >
+              Clear Filters
+            </Button>
+          </div>
         </div>
 
-        {/* Region Filter */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-bold text-neutral-500 tracking-wider ml-1">
-            Region
-          </span>
-          <FilterDropdown
-            label="Region"
-            value={region}
-            options={regionsData}
-            onSelect={(val) => {
-              // Synchronous instant swap: set data BEFORE React re-renders
-              const cacheKey = `${provider.toLowerCase()}:${val}`;
-              if (regionStore[cacheKey]?.length) {
-                setAllData(regionStore[cacheKey]);
-                setIsLoading(false);
-              }
-
-              setRegion(val);
-
-              // Shallow URL update — no Next.js navigation/remount
-              window.history.replaceState(
-                null,
-                "",
-                `/${provider.toLowerCase()}/${val}`,
-              );
-
-              // Persist filter state
-              saveFilterState(provider, {
-                region: val,
-                pricing,
-                currency,
-                pricingUnit,
-                reservedPlan,
-                columnFilters: columnFilters as {
-                  id: string;
-                  value: unknown;
-                }[],
-                sorting: sorting as { id: string; desc: boolean }[],
-              });
-            }}
-            searchable
-            className="w-[180px]"
-            dropdownWidth="w-[320px]"
-          />
-        </div>
-
-        {/* Payment Term Filter */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-bold text-neutral-500 tracking-wider ml-1 whitespace-nowrap">
-            Payment Term
-          </span>
-          <FilterDropdown
-            label="Payment Term"
-            value={reservedPlan}
-            options={COMMITMENT_OPTIONS[provider.toUpperCase()] || []}
-            onSelect={setReservedPlan}
-            className="w-[180px]"
-            dropdownWidth="w-[200px]"
-          />
-        </div>
-
-
-
-        {/* Pricing Unit Filter */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-bold text-neutral-500 tracking-wider ml-1">
-            Pricing Unit
-          </span>
-          <FilterDropdown
-            label="Pricing Unit"
-            value={pricingUnit}
-            options={[
-              { value: "instance", label: "Instance" },
-              { value: "vcpu", label: "vCPU" },
-              { value: "ecu", label: "ECU" },
-              { value: "memory", label: "Memory (GiB)" },
-            ]}
-            onSelect={setPricingUnit}
-            dropdownWidth="w-[180px]"
-          />
-        </div>
-
-        {/* Pricing Filter */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-bold text-neutral-500 tracking-wider ml-1">
-            Pricing
-          </span>
-          <FilterDropdown
-            label="Pricing"
-            value={pricing}
-            options={[
-              { value: "seconds", label: "Per second" },
-              { value: "minutes", label: "Per minute" },
-              { value: "hourly", label: "Per hour" },
-              { value: "weekly", label: "Per week" },
-              { value: "monthly", label: "Per month" },
-              { value: "yearly", label: "Per year" },
-            ]}
-            onSelect={setPricing}
-            dropdownWidth="w-[180px]"
-          />
-        </div>
-
-        {/* Currency Filter */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-bold text-neutral-500 tracking-wider ml-1">
-            Currency
-          </span>
-          <FilterDropdown
-            label="Currency"
-            value={currency}
-            options={CURRENCIES}
-            onSelect={setCurrency}
-            searchable
-            dropdownWidth="w-[280px]"
-          />
-        </div>
-
-        {/* Clear Filters Button */}
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[10px] font-bold transparent uppercase tracking-wider ml-1 select-none opacity-0">
-            Spacing
-          </span>
-          <Button
-            variant="ghost"
+        {/* Mobile Bottom Actions: Clear Filters only */}
+        <div className="md:hidden flex items-center pb-2 pt-3 border-b border-border w-full sm:-mx-6 sm:px-6">
+          <div
             onClick={clearFilters}
-            className="text-blue-600 hover:text-blue-500 bg-transparent border-none hover:bg-blue-100 px-4 font-medium h-10! rounded-lg shadow-none transition-colors cursor-pointer"
+            className="text-[14px] font-medium text-blue-600 hover:text-blue-500 cursor-pointer hover:opacity-80 transition-opacity"
           >
-            Clear Filters
-          </Button>
+            Clear filters
+          </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 overflow-hidden shadow-2xl relative">
+      <div className="rounded-xl border border-border bg-card/40 overflow-hidden relative">
         <div
           ref={parentRef}
           className="overflow-auto custom-scrollbar max-h-[calc(100vh-210px)] min-h-[400px] relative"
@@ -1371,20 +1393,20 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                 />
               ))}
             </colgroup>
-            <thead className="sticky top-0 z-30 bg-neutral-900">
+            <thead className="sticky top-0 z-30 bg-secondary">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header, idx) => (
                     <th
                       key={header.id}
                       colSpan={header.colSpan}
-                      className="p-0 relative text-left font-normal border-b border-neutral-800 bg-neutral-900"
+                      className="p-0 relative text-left font-normal border-b border-border bg-secondary"
                     >
                       {!header.isPlaceholder && (
                         <div
                           className={`relative flex flex-col h-full overflow-hidden ${
                             header.column.getCanSort()
-                              ? "cursor-pointer hover:bg-neutral-800/50"
+                              ? "cursor-pointer hover:bg-accent/50"
                               : ""
                           }`}
                           onClick={() => {
@@ -1410,7 +1432,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                               )
                             ) : (
                               <>
-                                <span className="text-[14px] font-bold text-neutral-400 overflow-hidden text-ellipsis">
+                                <span className="text-[14px] font-bold text-muted-foreground overflow-hidden text-ellipsis">
                                   {flexRender(
                                     header.column.columnDef.header,
                                     header.getContext(),
@@ -1421,16 +1443,16 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                                     <ChevronUp
                                       className={`h-3 w-3 shrink-0 ${
                                         header.column.getIsSorted() === "asc"
-                                          ? "text-white"
-                                          : "text-neutral-600"
+                                          ? "text-foreground"
+                                          : "text-muted-foreground"
                                       }`}
                                       strokeWidth={3}
                                     />
                                     <ChevronDown
                                       className={`h-3 w-3 shrink-0 ${
                                         header.column.getIsSorted() === "desc"
-                                          ? "text-white"
-                                          : "text-neutral-600"
+                                          ? "text-foreground"
+                                          : "text-muted-foreground"
                                       }`}
                                       strokeWidth={3}
                                     />
@@ -1454,7 +1476,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
 
                           {/* Column divider - skip for checkbox -> name boundary */}
                           {idx > 1 && (
-                            <div className="absolute left-0 top-[10%] bottom-[10%] w-px bg-neutral-800" />
+                            <div className="absolute left-0 top-[10%] bottom-[10%] w-px bg-border" />
                           )}
 
                           {/* Resize handle - skip for checkbox */}
@@ -1493,8 +1515,8 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                   <tr
                     key={row.id}
                     data-index={virtualRow.index}
-                    className={`border-b border-neutral-800 transition-colors cursor-pointer ${
-                      isSelected ? "bg-blue-950/30!" : "hover:bg-neutral-800/20"
+                    className={`border-b border-border transition-colors cursor-pointer ${
+                      isSelected ? "bg-blue-500/10!" : "hover:bg-accent/20"
                     }`}
                     onClick={() => row.toggleSelected()}
                   >
@@ -1521,7 +1543,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                 <tr>
                   <td
                     colSpan={table.getVisibleLeafColumns().length}
-                    className="h-32 text-center text-neutral-500 font-medium"
+                    className="h-32 text-center text-muted-foreground font-medium"
                   >
                     No results found.
                   </td>
@@ -1534,24 +1556,24 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
 
       {/* Compare Bar */}
       {selectedCount > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-neutral-950 border-t border-neutral-900 backdrop-blur-3xl px-8 py-3.5 flex items-center justify-between animate-in slide-in-from-bottom-full duration-300 shadow-[0_-10px_40px_rgba(0,0,0,0.4)]">
-          <div className="flex items-center gap-8 overflow-hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border backdrop-blur-3xl px-4 sm:px-8 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0 animate-in slide-in-from-bottom-full duration-300">
+          <div className="flex items-center gap-4 sm:gap-8 overflow-hidden w-full sm:w-auto">
             {selectedCount <= 3 ? (
               <>
-                <div className="flex items-center gap-2.5 shrink-0">
+                <div className="hidden sm:flex items-center gap-2.5 shrink-0">
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
-                  <span className="text-[12px] font-bold text-white tracking-tight uppercase opacity-90 whitespace-nowrap">
+                  <span className="text-[12px] font-bold text-foreground tracking-tight uppercase opacity-90 whitespace-nowrap">
                     Selected Instances
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar no-scrollbar py-1">
+                <div className="flex flex-1 sm:flex-initial items-center gap-2 overflow-x-auto custom-scrollbar no-scrollbar py-1">
                   {table.getSelectedRowModel().rows.map((row) => (
                     <div
                       key={row.id}
-                      className="flex items-center gap-2 bg-neutral-800/60 hover:bg-neutral-800 border border-neutral-700/50 py-1.5 pl-3 pr-2 rounded-full transition-all group/chip shrink-0"
+                      className="flex items-center gap-2 bg-secondary/60 hover:bg-secondary border border-border/50 py-1.5 pl-3 pr-2 rounded-full transition-all group/chip shrink-0"
                     >
-                      <span className="text-[11px] font-mono text-neutral-300 group-hover/chip:text-white truncate max-w-[120px]">
+                      <span className="text-[11px] font-mono text-muted-foreground group-hover/chip:text-foreground truncate max-w-[120px]">
                         {row.original.apiName}
                       </span>
                       <button
@@ -1559,7 +1581,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                           e.stopPropagation();
                           row.toggleSelected(false);
                         }}
-                        className="hover:bg-neutral-700 p-0.5 rounded-full text-neutral-500 hover:text-white transition-colors cursor-pointer"
+                        className="hover:bg-accent p-0.5 rounded-full text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                       >
                         <X className="h-2.5 w-2.5" />
                       </button>
@@ -1568,18 +1590,18 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                 </div>
               </>
             ) : (
-              <span className="text-[12px] font-bold text-neutral-500 tracking-tight opacity-90 whitespace-nowrap">
-                <span className="text-white"> {selectedCount} </span>
+              <span className="text-[12px] font-bold text-muted-foreground tracking-tight opacity-90 whitespace-nowrap">
+                <span className="text-foreground"> {selectedCount} </span>
                 &nbsp;&nbsp;Instances Selected
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-4 shrink-0 pl-8">
+          <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-4 shrink-0 sm:pl-8">
             <Button
               variant="ghost"
               onClick={() => setRowSelection({})}
-              className="text-[11px] font-bold text-neutral-500 hover:text-white cursor-pointer uppercase tracking-wider h-9 px-4 transition-colors"
+              className="text-[11px] font-bold text-muted-foreground hover:text-foreground cursor-pointer uppercase tracking-wider h-9 px-4 transition-colors p-0 sm:px-4"
             >
               Clear All
             </Button>
@@ -1591,10 +1613,10 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
             >
               <Button
                 disabled={selectedCount < 2 || selectedCount > 3}
-                className={`text-[13px] font-bold px-8 h-10 rounded-full shadow-lg transition-all ${
+                className={`text-[13px] font-bold px-8 h-10 rounded-full transition-all w-full sm:w-auto ${
                   selectedCount >= 2 && selectedCount <= 3
-                    ? "bg-white hover:bg-neutral-200 text-black cursor-pointer"
-                    : "bg-neutral-200 text-black cursor-not-allowed"
+                    ? "bg-primary hover:bg-primary/80 text-primary-foreground cursor-pointer"
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
                 }`}
               >
                 {selectedCount > 3 ? "Compare" : `Compare (${selectedCount})`}
@@ -1605,7 +1627,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
       )}
 
       <div className="flex justify-end mt-2.5 px-0.5">
-        <span className="text-[14px] font-medium text-neutral-500 select-none">
+        <span className="text-[14px] font-medium text-muted-foreground select-none">
           {rows.length.toLocaleString()} instances
         </span>
       </div>

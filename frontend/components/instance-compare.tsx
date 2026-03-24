@@ -921,16 +921,16 @@ function InstanceSearchColumn({
   }, []);
 
   return (
-    <th className="w-1/3 min-w-[280px] p-6 text-left align-top border-r border-neutral-800 last:border-r-0">
+    <th className="w-1/3 min-w-[280px] p-6 text-left align-top border-r border-border last:border-r-0">
       <div ref={containerRef} className="relative">
         {instance ? (
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <div className="text-lg font-bold text-white mb-1 truncate">
+              <div className="text-lg font-bold text-foreground mb-1 truncate">
                 {instance.name}
               </div>
               {!instance.id.startsWith("azure") && (
-                <div className="text-[11px] text-neutral-500 font-medium uppercase tracking-wider">
+                <div className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">
                   {instance.family}
                 </div>
               )}
@@ -940,7 +940,7 @@ function InstanceSearchColumn({
                 e.stopPropagation();
                 onRemove();
               }}
-              className="text-neutral-600 hover:text-red-400/80 p-1 transition-colors cursor-pointer"
+              className="text-muted-foreground hover:text-red-400/80 p-1 transition-colors cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
@@ -948,7 +948,7 @@ function InstanceSearchColumn({
         ) : (
           <>
             <div className="relative mb-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-600" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 ref={inputRef}
                 type="text"
@@ -956,12 +956,12 @@ function InstanceSearchColumn({
                 onChange={(e) => setQuery(e.target.value)}
                 onFocus={() => setIsFocused(true)}
                 placeholder="Search instance…"
-                className="pl-9 h-10 bg-neutral-900 border-neutral-800 text-white placeholder:text-neutral-600 focus-visible:ring-1 focus-visible:ring-neutral-700 rounded-xl text-sm font-medium"
+                className="pl-9 h-10 bg-secondary border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-border rounded-xl text-sm font-medium"
               />
             </div>
 
             {isFocused && matches.length > 0 && (
-              <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-[300px] overflow-y-auto bg-neutral-900 border border-neutral-800 rounded-xl shadow-2xl backdrop-blur-xl">
+              <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-[300px] overflow-y-auto bg-secondary border border-border rounded-xl shadow-2xl backdrop-blur-xl">
                 {matches.map((match) => (
                   <button
                     key={match.id}
@@ -970,12 +970,14 @@ function InstanceSearchColumn({
                       setQuery("");
                       setIsFocused(false);
                     }}
-                    className="w-full text-left px-4 py-3 hover:bg-neutral-800/80 transition-colors border-b border-neutral-800/50 last:border-b-0 cursor-pointer"
+                    className="w-full text-left px-4 py-3 hover:bg-accent/80 transition-colors border-b border-border/50 last:border-b-0 cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-5 h-5 flex items-center justify-center">
                         {match.provider === "aws" && (
-                          <AmazonWebServices className="w-4 h-4" />
+                          <div className="w-5 h-5 rounded-full bg-zinc-900 dark:bg-transparent flex items-center justify-center overflow-hidden">
+                            <AmazonWebServices className="w-3.5 h-3.5 translate-y-px dark:translate-y-0 dark:w-5 dark:h-5" />
+                          </div>
                         )}
                         {match.provider === "azure" && (
                           <MicrosoftAzure className="w-4 h-4" />
@@ -985,15 +987,15 @@ function InstanceSearchColumn({
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-white truncate">
+                        <div className="text-sm font-bold text-foreground truncate">
                           {match.name}
                         </div>
-                        <div className="text-[11px] text-neutral-500 mt-0.5">
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
                           {match.vcpus} vCPUs · {match.memory}
                         </div>
                       </div>
                       {match.linuxOnDemand !== "-" && (
-                        <span className="text-xs font-bold text-emerald-400 ml-3 whitespace-nowrap">
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 ml-3 whitespace-nowrap">
                           {match.linuxOnDemand}/hr
                         </span>
                       )}
@@ -1004,8 +1006,8 @@ function InstanceSearchColumn({
             )}
 
             {!isFocused && (
-              <div className="mt-4 h-[80px] border-2 border-dashed border-neutral-800/50 rounded-xl flex items-center justify-center bg-neutral-900/10">
-                <div className="text-[11px] font-bold text-neutral-700 uppercase tracking-widest">
+              <div className="mt-4 h-[80px] border-2 border-dashed border-border/50 rounded-xl flex items-center justify-center bg-secondary/10">
+                <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
                   Empty Slot
                 </div>
               </div>
@@ -1256,8 +1258,8 @@ export function ComparePage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white pb-20">
-      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 pt-12">
+    <div className="min-h-screen bg-background text-foreground pb-20">
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 pt-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div>
@@ -1266,44 +1268,44 @@ export function ComparePage() {
                 <BreadcrumbItem>
                   <BreadcrumbLink
                     asChild
-                    className="text-neutral-500 hover:text-white transition-colors text-[13px] font-medium"
+                    className="text-muted-foreground hover:text-foreground transition-colors text-[13px] font-medium"
                   >
                     <Link href="/">Instances</Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator className="text-neutral-800" />
+                <BreadcrumbSeparator className="text-muted-foreground" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage className="text-white font-medium text-[13px]">
+                  <BreadcrumbPage className="text-foreground font-medium text-[13px]">
                     Compare
                   </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
-            <h1 className="text-3xl md:text-[40px] font-semibold text-white tracking-tight leading-none">
+            <h1 className="text-3xl md:text-[40px] font-semibold text-foreground tracking-tight leading-none">
               Compare Instances
             </h1>
-            <p className="mt-4 text-neutral-400 text-sm md:text-base max-w-2xl font-sans leading-relaxed">
+            <p className="mt-4 text-muted-foreground text-sm md:text-base max-w-2xl font-sans leading-relaxed">
               Analyze and compare hardware specifications, network performance,
               and real-time pricing across different instance types and
               providers.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative flex bg-black p-1 rounded-xl border border-neutral-800">
+          <div className="flex flex-wrap items-center gap-2 mt-2 md:mt-0">
+            <div className="relative flex bg-background p-1 rounded-xl border border-border">
               <button
                 onClick={() => setCompareMode("full")}
                 className={cn(
-                  "relative z-10 px-5 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
+                  "relative z-10 px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors cursor-pointer",
                   compareMode === "full"
-                    ? "text-black"
-                    : "text-neutral-500 hover:text-white",
+                    ? "text-background"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {compareMode === "full" && (
                   <motion.div
                     layoutId="activeTab"
-                    className="absolute inset-0 bg-white rounded-lg -z-10"
+                    className="absolute inset-0 bg-foreground rounded-lg -z-10"
                     transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
                   />
                 )}
@@ -1312,16 +1314,16 @@ export function ComparePage() {
               <button
                 onClick={() => setCompareMode("diff")}
                 className={cn(
-                  "relative z-10 px-5 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
+                  "relative z-10 px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors cursor-pointer",
                   compareMode === "diff"
-                    ? "text-black"
-                    : "text-neutral-500 hover:text-white",
+                    ? "text-background"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {compareMode === "diff" && (
                   <motion.div
                     layoutId="activeTab"
-                    className="absolute inset-0 bg-white rounded-lg -z-10"
+                    className="absolute inset-0 bg-foreground rounded-lg -z-10"
                     transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
                   />
                 )}
@@ -1332,7 +1334,7 @@ export function ComparePage() {
             {columnCount < 3 && (
               <Button
                 onClick={() => setColumnCount(3)}
-                className="bg-neutral-900 hover:bg-neutral-800 text-white border border-neutral-800 h-10 px-5 rounded-xl flex items-center gap-2 font-medium text-sm cursor-pointer"
+                className="bg-secondary hover:bg-accent text-foreground border border-border h-9 md:h-10 px-3.5 sm:px-5 rounded-xl flex items-center gap-1.5 sm:gap-2 font-medium text-xs sm:text-sm cursor-pointer"
               >
                 <Plus className="h-4 w-4" /> ADD INSTANCE
               </Button>
@@ -1349,21 +1351,21 @@ export function ComparePage() {
         >
           {isLoading && (
             <div className="absolute inset-0 z-40 flex items-center justify-center">
-              <div className="bg-black/40 backdrop-blur-[2px] rounded-2xl px-8 py-4 border border-neutral-800 flex items-center gap-3">
+              <div className="bg-background/40 backdrop-blur-[2px] rounded-2xl px-8 py-4 border border-border flex items-center gap-3">
                 <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                <span className="text-white text-sm font-medium">
+                <span className="text-foreground text-sm font-medium">
                   Refreshing Data...
                 </span>
               </div>
             </div>
           )}
 
-          <div className="relative overflow-x-auto border border-neutral-800 rounded-2xl bg-neutral-950/50 backdrop-blur-sm">
-            <table className="w-full border-collapse">
+          <div className="relative overflow-x-auto border border-border rounded-2xl bg-card/50 backdrop-blur-sm">
+            <table className="w-full border-collapse min-w-[800px] md:min-w-full">
               <thead>
-                <tr className="border-b border-neutral-800">
-                  <th className="sticky left-0 z-30 bg-neutral-950/95 backdrop-blur-md w-[280px] p-6 text-left align-top border-r border-neutral-800">
-                    <div className="flex items-center gap-2 text-neutral-500 text-xs font-bold uppercase tracking-[0.2em]">
+                <tr className="border-b border-border">
+                  <th className="md:sticky md:left-0 z-30 bg-card/95 backdrop-blur-md w-[140px] md:w-[280px] p-4 md:p-6 text-left align-top border-r border-border">
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs font-bold uppercase tracking-[0.2em]">
                       <Activity className="h-3 w-3" /> Specifications
                     </div>
                   </th>
@@ -1399,9 +1401,9 @@ export function ComparePage() {
 
                   return (
                     <React.Fragment key={section.title}>
-                      <tr className="bg-neutral-900/40 border-b border-neutral-800/50">
-                        <td className="sticky left-0 z-30 bg-neutral-900/90 backdrop-blur-md px-6 py-3 border-r border-neutral-800">
-                          <div className="flex items-center gap-2 text-white">
+                      <tr className="bg-secondary/40 border-b border-border/50">
+                        <td className="md:sticky md:left-0 z-30 bg-secondary/90 backdrop-blur-md px-6 py-3 border-r border-border">
+                          <div className="flex items-center gap-2 text-foreground">
                             {section.icon}
                             <span className="text-[13px] font-bold uppercase tracking-wider">
                               {section.title}
@@ -1416,7 +1418,7 @@ export function ComparePage() {
 
 
                               <div className="flex flex-col gap-1.5 min-w-[140px]">
-                                <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest ml-1">
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
                                   Pricing Interval
                                 </span>
                                 <FilterDropdown
@@ -1429,7 +1431,7 @@ export function ComparePage() {
                               </div>
 
                               <div className="flex flex-col gap-1.5 min-w-[140px]">
-                                <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest ml-1">
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
                                   Pricing Unit
                                 </span>
                                 <FilterDropdown
@@ -1442,7 +1444,7 @@ export function ComparePage() {
                               </div>
 
                               <div className="flex flex-col gap-1.5 min-w-[160px]">
-                                <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest ml-1">
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
                                   Currency
                                 </span>
                                 <FilterDropdown
@@ -1460,7 +1462,7 @@ export function ComparePage() {
                                 </span>
                                 <button
                                   onClick={clearFilters}
-                                  className="text-xs font-bold text-blue-500 hover:text-blue-400 transition-colors cursor-pointer h-9 flex items-center"
+                                  className="text-xs font-bold text-blue-600 dark:text-blue-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer h-9 flex items-center"
                                 >
                                   Clear Filters
                                 </button>
@@ -1479,17 +1481,17 @@ export function ComparePage() {
                         return (
                           <tr
                             key={`${section.title}-${specIdx}`}
-                            className="border-b border-neutral-900 hover:bg-white/[0.01] transition-colors group"
+                            className="border-b border-border hover:bg-foreground/[0.01] transition-colors group"
                           >
-                            <td className="sticky left-0 z-30 bg-neutral-950/95 backdrop-blur-md px-6 py-4 border-r border-neutral-800 text-[13px] font-medium text-neutral-400 group-hover:text-neutral-200">
+                            <td className="md:sticky md:left-0 z-30 bg-card/95 backdrop-blur-md px-6 py-4 border-r border-border text-[13px] font-medium text-muted-foreground group-hover:text-foreground">
                               {spec.label}
                             </td>
                             {values.map((val, idx) => (
                               <td
                                 key={idx}
                                 className={cn(
-                                  "px-6 py-4 border-r border-neutral-900 last:border-r-0 text-sm",
-                                  !activeColumns[idx] && "bg-neutral-950/20",
+                                  "px-6 py-4 border-r border-border last:border-r-0 text-sm",
+                                  !activeColumns[idx] && "bg-card/20",
                                 )}
                               >
                                 {activeColumns[idx] ? (
@@ -1499,8 +1501,8 @@ export function ComparePage() {
                                         className={cn(
                                           "text-base font-bold",
                                           val !== "—"
-                                            ? "text-emerald-400"
-                                            : "text-neutral-600",
+                                            ? "text-emerald-600 dark:text-emerald-400"
+                                            : "text-muted-foreground",
                                         )}
                                       >
                                         {val}
@@ -1510,8 +1512,8 @@ export function ComparePage() {
                                         className={cn(
                                           "font-medium",
                                           val !== "—"
-                                            ? "text-neutral-200"
-                                            : "text-neutral-700",
+                                            ? "text-foreground"
+                                            : "text-muted-foreground",
                                         )}
                                       >
                                         {val}
@@ -1519,7 +1521,7 @@ export function ComparePage() {
                                     )}
                                   </div>
                                 ) : (
-                                  <span className="text-neutral-800">—</span>
+                                  <span className="text-muted-foreground">—</span>
                                 )}
                               </td>
                             ))}

@@ -65,7 +65,6 @@ const selectColumn: ColumnDef<Instance> = {
       }
       onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
       aria-label="Select all"
-      className="border-neutral-700 data-checked:bg-neutral-700 data-checked:border-neutral-600 data-checked:text-white"
     />
   ),
   cell: ({ row }) => (
@@ -77,7 +76,6 @@ const selectColumn: ColumnDef<Instance> = {
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
         aria-label="Select row"
-        className="border-neutral-700 data-checked:bg-neutral-700 data-checked:border-neutral-600 data-checked:text-white"
       />
     </div>
   ),
@@ -101,7 +99,7 @@ const nameColumn: ColumnDef<Instance> = {
       provider === "azure" && family ? family.replace(/_/g, " ") : name;
 
     return (
-      <div className="font-medium text-white px-4 text-left truncate-custom">
+      <div className="font-medium text-foreground px-4 text-left truncate-custom">
         {displayName}
       </div>
     );
@@ -126,11 +124,11 @@ const apiNameColumn: ColumnDef<Instance> = {
       <div className="px-4 text-left truncate-custom">
         <Link
           href={href}
-          className="text-blue-500 font-mono text-xs cursor-pointer relative group pb-0.5 hover:text-blue-400 transition-colors"
+          className="text-blue-600 font-mono text-xs cursor-pointer relative group pb-0.5 hover:text-blue-500 transition-colors"
           onClick={(e) => e.stopPropagation()}
         >
           {displayName}
-          <span className="absolute bottom-0 left-0 w-0 h-px bg-blue-500 transition-all duration-300 group-hover:w-full" />
+          <span className="absolute bottom-0 left-0 w-0 h-px bg-blue-600 transition-all duration-300 group-hover:w-full" />
         </Link>
       </div>
     );
@@ -143,7 +141,7 @@ const familyColumn: ColumnDef<Instance> = {
   size: 200,
   minSize: 170,
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-left truncate-custom">
+    <div className="text-muted-foreground text-sm px-4 text-left truncate-custom">
       {row.getValue("family") || "-"}
     </div>
   ),
@@ -156,7 +154,7 @@ const memoryColumn: ColumnDef<Instance> = {
   minSize: 170,
   meta: { showTooltip: true },
   cell: ({ row }) => (
-    <div className="text-white text-sm px-4 text-left truncate-custom">
+    <div className="text-foreground text-sm px-4 text-left truncate-custom">
       {row.getValue("memory") || "-"}
     </div>
   ),
@@ -171,7 +169,7 @@ const vcpusColumn: ColumnDef<Instance> = {
   cell: ({ row }) => {
     const val = row.getValue("vcpus");
     return (
-      <div className="text-white text-sm px-4 text-left truncate-custom">
+      <div className="text-foreground text-sm px-4 text-left truncate-custom">
         {val ? `${val}` : "-"}
       </div>
     );
@@ -185,7 +183,7 @@ const storageColumn: ColumnDef<Instance> = {
   minSize: 170,
   meta: { showTooltip: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-left truncate-custom">
+    <div className="text-muted-foreground text-sm px-4 text-left truncate-custom">
       {row.getValue("storage") || "-"}
     </div>
   ),
@@ -197,7 +195,7 @@ const networkColumn: ColumnDef<Instance> = {
   size: 230,
   minSize: 190,
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-left truncate-custom">
+    <div className="text-muted-foreground text-sm px-4 text-left truncate-custom">
       {row.getValue("network") || "-"}
     </div>
   ),
@@ -211,7 +209,7 @@ export const linuxOnDemandCostColumn: ColumnDef<Instance> = {
   size: 160,
   minSize: 140,
   cell: ({ row }) => (
-    <div className="font-medium text-emerald-400 px-4 text-left truncate-custom">
+    <div className="font-medium text-emerald-600 dark:text-emerald-400 px-4 text-left truncate-custom">
       {row.getValue("linuxOnDemandCost")}
     </div>
   ),
@@ -223,7 +221,7 @@ export const linuxSpotCostColumn: ColumnDef<Instance> = {
   size: 160,
   minSize: 140,
   cell: ({ row }) => (
-    <div className="font-medium text-emerald-400 px-4 text-left truncate-custom">
+    <div className="font-medium text-emerald-600 dark:text-emerald-400 px-4 text-left truncate-custom">
       {row.getValue("linuxSpotCost")}
     </div>
   ),
@@ -235,7 +233,7 @@ export const windowsOnDemandCostColumn: ColumnDef<Instance> = {
   size: 160,
   minSize: 140,
   cell: ({ row }) => (
-    <div className="font-medium text-emerald-400 px-4 text-left truncate-custom">
+    <div className="font-medium text-emerald-600 dark:text-emerald-400 px-4 text-left truncate-custom">
       {row.getValue("windowsOnDemandCost")}
     </div>
   ),
@@ -247,7 +245,7 @@ export const windowsSpotCostColumn: ColumnDef<Instance> = {
   size: 160,
   minSize: 140,
   cell: ({ row }) => (
-    <div className="font-medium text-emerald-400 px-4 text-left truncate-custom">
+    <div className="font-medium text-emerald-600 dark:text-emerald-400 px-4 text-left truncate-custom">
       {row.getValue("windowsSpotCost")}
     </div>
   ),
@@ -259,7 +257,7 @@ const linuxCostColumn: ColumnDef<Instance> = {
   size: 200,
   minSize: 160,
   cell: ({ row }) => (
-    <div className="font-medium text-emerald-400 px-4 text-left truncate-custom">
+    <div className="font-medium text-emerald-600 dark:text-emerald-400 px-4 text-left truncate-custom">
       {row.getValue("linuxCost")}
     </div>
   ),
@@ -271,7 +269,7 @@ const windowsCostColumn: ColumnDef<Instance> = {
   size: 200,
   minSize: 160,
   cell: ({ row }) => (
-    <div className="font-medium text-emerald-400 px-4 text-left truncate-custom">
+    <div className="font-medium text-emerald-600 dark:text-emerald-400 px-4 text-left truncate-custom">
       {row.getValue("windowsCost")}
     </div>
   ),
@@ -283,7 +281,7 @@ const rhelCostColumn: ColumnDef<Instance> = {
   size: 200,
   minSize: 160,
   cell: ({ row }) => (
-    <div className="font-medium text-emerald-400 px-4 text-left truncate-custom">
+    <div className="font-medium text-emerald-600 dark:text-emerald-400 px-4 text-left truncate-custom">
       {row.getValue("rhelCost")}
     </div>
   ),
@@ -295,7 +293,7 @@ const ubuntuCostColumn: ColumnDef<Instance> = {
   size: 200,
   minSize: 160,
   cell: ({ row }) => (
-    <div className="font-medium text-emerald-400 px-4 text-left truncate-custom">
+    <div className="font-medium text-emerald-600 dark:text-emerald-400 px-4 text-left truncate-custom">
       {row.getValue("ubuntuCost")}
     </div>
   ),
@@ -307,7 +305,7 @@ const slesCostColumn: ColumnDef<Instance> = {
   size: 200,
   minSize: 160,
   cell: ({ row }) => (
-    <div className="font-medium text-emerald-400 px-4 text-left truncate-custom">
+    <div className="font-medium text-emerald-600 dark:text-emerald-400 px-4 text-left truncate-custom">
       {row.getValue("slesCost")}
     </div>
   ),
@@ -319,7 +317,7 @@ const instancePriceColumn: ColumnDef<Instance> = {
   size: 200,
   minSize: 160,
   cell: ({ row }) => (
-    <div className="font-medium text-emerald-400 px-4 text-left truncate-custom">
+    <div className="font-medium text-emerald-600 dark:text-emerald-400 px-4 text-left truncate-custom">
       {row.getValue("instancePrice")}
     </div>
   ),
@@ -332,7 +330,7 @@ const processorColumn: ColumnDef<Instance> = {
   minSize: 200,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-left truncate-custom">
+    <div className="text-muted-foreground text-sm px-4 text-left truncate-custom">
       {row.getValue("processor") || "-"}
     </div>
   ),
@@ -345,7 +343,7 @@ const clockSpeedColumn: ColumnDef<Instance> = {
   minSize: 130,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-left truncate-custom">
+    <div className="text-muted-foreground text-sm px-4 text-left truncate-custom">
       {row.getValue("clockSpeed") || "-"}
     </div>
   ),
@@ -358,7 +356,7 @@ const archColumn: ColumnDef<Instance> = {
   minSize: 80,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-left truncate-custom uppercase">
+    <div className="text-muted-foreground text-sm px-4 text-left truncate-custom uppercase">
       {row.getValue("architecture") || "-"}
     </div>
   ),
@@ -371,7 +369,7 @@ const memoryPerVCPUColumn: ColumnDef<Instance> = {
   minSize: 130,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-center truncate-custom">
+    <div className="text-muted-foreground text-sm px-4 text-center truncate-custom">
       {row.getValue("memoryPerVCPU") || "-"}
     </div>
   ),
@@ -384,7 +382,7 @@ const l3CacheColumn: ColumnDef<Instance> = {
   minSize: 100,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-center truncate-custom uppercase">
+    <div className="text-muted-foreground text-sm px-4 text-center truncate-custom uppercase">
       {row.getValue("l3Cache") || "-"}
     </div>
   ),
@@ -397,7 +395,7 @@ const gpuCountColumn: ColumnDef<Instance> = {
   minSize: 60,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-center truncate-custom">
+    <div className="text-muted-foreground text-sm px-4 text-center truncate-custom">
       {row.getValue("gpuCount") ?? "-"}
     </div>
   ),
@@ -410,7 +408,7 @@ const gpuNameColumn: ColumnDef<Instance> = {
   minSize: 140,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-left truncate-custom">
+    <div className="text-muted-foreground text-sm px-4 text-left truncate-custom">
       {row.getValue("gpuName") || "-"}
     </div>
   ),
@@ -423,7 +421,7 @@ const gpuMemoryColumn: ColumnDef<Instance> = {
   minSize: 100,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-left truncate-custom">
+    <div className="text-muted-foreground text-sm px-4 text-left truncate-custom">
       {row.getValue("gpuMemory") || "-"}
     </div>
   ),
@@ -436,7 +434,7 @@ const numaNodesColumn: ColumnDef<Instance> = {
   minSize: 100,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-center truncate-custom">
+    <div className="text-muted-foreground text-sm px-4 text-center truncate-custom">
       {row.getValue("numaNodes") ?? "-"}
     </div>
   ),
@@ -449,7 +447,7 @@ const enhancedNetworkColumn: ColumnDef<Instance> = {
   minSize: 130,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-left truncate-custom uppercase">
+    <div className="text-muted-foreground text-sm px-4 text-left truncate-custom uppercase">
       {row.getValue("enhancedNetwork") || "-"}
     </div>
   ),
@@ -462,7 +460,7 @@ const ipv6Column: ColumnDef<Instance> = {
   minSize: 100,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-left truncate-custom uppercase">
+    <div className="text-muted-foreground text-sm px-4 text-left truncate-custom uppercase">
       {row.getValue("ipv6") || "-"}
     </div>
   ),
@@ -475,7 +473,7 @@ const bareMetalColumn: ColumnDef<Instance> = {
   minSize: 100,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-left truncate-custom uppercase">
+    <div className="text-muted-foreground text-sm px-4 text-left truncate-custom uppercase">
       {row.getValue("bareMetal") || "-"}
     </div>
   ),
@@ -488,7 +486,7 @@ const generationColumn: ColumnDef<Instance> = {
   minSize: 110,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-left truncate-custom">
+    <div className="text-muted-foreground text-sm px-4 text-left truncate-custom">
       {row.getValue("generation") || "-"}
     </div>
   ),
@@ -501,7 +499,7 @@ const ebsBandwidthColumn: ColumnDef<Instance> = {
   minSize: 140,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-left truncate-custom">
+    <div className="text-muted-foreground text-sm px-4 text-left truncate-custom">
       {row.getValue("ebsBandwidth") || "-"}
     </div>
   ),
@@ -516,7 +514,7 @@ const ffmpegFPSColumn: ColumnDef<Instance> = {
   minSize: 110,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-center truncate-custom">
+    <div className="text-muted-foreground text-sm px-4 text-center truncate-custom">
       {row.getValue("ffmpegFPS") || "-"}
     </div>
   ),
@@ -529,7 +527,7 @@ const emrColumn: ColumnDef<Instance> = {
   minSize: 100,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-center truncate-custom uppercase">
+    <div className="text-muted-foreground text-sm px-4 text-center truncate-custom uppercase">
       {row.getValue("emr") || "-"}
     </div>
   ),
@@ -542,7 +540,7 @@ const hibernationColumn: ColumnDef<Instance> = {
   minSize: 100,
   meta: { isAdvanced: true },
   cell: ({ row }) => (
-    <div className="text-neutral-300 text-sm px-4 text-center truncate-custom uppercase">
+    <div className="text-muted-foreground text-sm px-4 text-center truncate-custom uppercase">
       {row.getValue("hibernation") || "-"}
     </div>
   ),

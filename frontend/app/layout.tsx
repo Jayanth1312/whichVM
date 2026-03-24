@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -30,15 +31,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${geistMono.variable} dark`}
+      className={`${dmSans.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
-      <body className="antialiased bg-black text-white">
-        <TooltipProvider>
-          <ScrollbarHandler />
-          <Header />
-          {children}
-        </TooltipProvider>
+      <body className="antialiased bg-background text-foreground">
+        <ThemeProvider defaultTheme="dark" storageKey="whichvm-theme">
+          <TooltipProvider>
+            <ScrollbarHandler />
+            <Header />
+            {children}
+          </TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -230,54 +230,54 @@ function DetailSection({
 
   function renderValue(val: any): React.ReactNode {
     if (val === null || val === undefined || val === "" || val === "N/A") {
-      return <span className="text-neutral-600">N/A</span>;
+      return <span className="text-muted-foreground">N/A</span>;
     }
     if (typeof val === "boolean") {
       return (
         <span
-          className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-mono font-medium ${val ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"}`}
+          className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-mono font-medium ${val ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-red-500/15 text-red-600 dark:text-red-400"}`}
         >
           {val ? "true" : "false"}
         </span>
       );
     }
     if (typeof val === "number") {
-      return <span className="text-white font-mono text-sm">{val}</span>;
+      return <span className="text-foreground font-mono text-sm">{val}</span>;
     }
     if (val === "true" || val === "false" || val === "Yes" || val === "No") {
       const boolVal = val === "true" || val === "Yes";
       return (
         <span
-          className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-mono font-medium ${boolVal ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"}`}
+          className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-mono font-medium ${boolVal ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-red-500/15 text-red-600 dark:text-red-400"}`}
         >
           {val}
         </span>
       );
     }
-    return <span className="text-white text-sm">{String(val)}</span>;
+    return <span className="text-foreground text-sm">{String(val)}</span>;
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-neutral-800/60 font-sans shadow-sm transition-all duration-200">
+    <div className="overflow-hidden rounded-lg border border-border font-sans transition-all duration-200">
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between bg-neutral-900/80 px-4 py-3 cursor-pointer select-none hover:bg-neutral-800 transition-colors"
+        className="flex items-center justify-between bg-secondary/80 px-4 py-3 cursor-pointer select-none hover:bg-accent transition-colors"
       >
-        <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-200">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
           {title}
         </h3>
         <ChevronDown
-          className={`h-4 w-4 text-neutral-500 transition-transform duration-200 ${isOpen ? "" : "-rotate-90"}`}
+          className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "" : "-rotate-90"}`}
         />
       </div>
       {isOpen && (
-        <div className="divide-y divide-neutral-800/30">
+        <div className="divide-y divide-border">
           {rows.map((row, i) => (
             <div
               key={i}
-              className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-neutral-900/40"
+              className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-secondary/40"
             >
-              <span className="text-sm text-neutral-400 pr-4">{row.label}</span>
+              <span className="text-sm text-muted-foreground pr-4">{row.label}</span>
               <div className="text-right">{renderValue(row.value)}</div>
             </div>
           ))}
@@ -420,10 +420,10 @@ export function InstanceDetail({
     return (
       <div className="flex flex-col items-center justify-center py-32">
         <div className="relative h-12 w-12">
-          <div className="absolute inset-0 rounded-full border-2 border-neutral-800" />
+          <div className="absolute inset-0 rounded-full border-2 border-border" />
           <div className="absolute inset-0 animate-spin rounded-full border-2 border-t-blue-500 border-transparent" />
         </div>
-        <p className="mt-4 text-sm text-neutral-500">Loading details...</p>
+        <p className="mt-4 text-sm text-muted-foreground">Loading details...</p>
       </div>
     );
 
@@ -431,11 +431,11 @@ export function InstanceDetail({
     return (
       <div className="flex flex-col items-center justify-center py-32 text-center px-4">
         <div className="mb-4 text-4xl">⚠️</div>
-        <p className="text-lg font-medium text-white">Instance Not Found</p>
-        <p className="mt-2 text-sm text-neutral-500">{error}</p>
+        <p className="text-lg font-medium text-foreground">Instance Not Found</p>
+        <p className="mt-2 text-sm text-muted-foreground">{error}</p>
         <button
           onClick={() => router.push(`/${provider.toLowerCase()}/${region}`)}
-          className="mt-6 flex items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-800"
+          className="mt-6 flex items-center gap-2 rounded-lg border border-border bg-secondary px-4 py-2 text-sm text-muted-foreground hover:bg-accent"
         >
           <ArrowLeft className="h-4 w-4" /> Back to instances
         </button>
@@ -515,40 +515,40 @@ export function InstanceDetail({
             <BreadcrumbItem>
               <BreadcrumbLink
                 asChild
-                className="text-neutral-500 hover:text-white transition-colors text-[13px] font-medium"
+                className="text-muted-foreground hover:text-foreground transition-colors text-[13px] font-medium"
               >
                 <Link href="/">Instances</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator className="text-neutral-800" />
+            <BreadcrumbSeparator className="text-muted-foreground" />
             <BreadcrumbItem>
               <BreadcrumbLink
                 asChild
-                className="text-neutral-500 hover:text-white transition-colors text-[13px] font-medium capitalize"
+                className="text-muted-foreground hover:text-foreground transition-colors text-[13px] font-medium capitalize"
               >
                 <Link href={`/${provider.toLowerCase()}/${region}`}>
                   {provider} {provider === "AWS" ? "EC2" : "Compute"}
                 </Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator className="text-neutral-800" />
+            <BreadcrumbSeparator className="text-muted-foreground" />
             <BreadcrumbItem>
-              <BreadcrumbPage className="text-white font-medium text-[13px]">
+              <BreadcrumbPage className="text-foreground font-medium text-[13px]">
                 {displayName}
               </BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <h1 className="text-3xl md:text-[40px] font-semibold text-white tracking-tight leading-none">
+        <h1 className="text-3xl md:text-[40px] font-semibold text-foreground tracking-tight leading-none">
           {displayName}
         </h1>
-        <p className="mt-4 max-w-3xl text-sm md:text-base text-neutral-400 leading-relaxed font-sans">
+        <p className="mt-4 max-w-3xl text-sm md:text-base text-muted-foreground leading-relaxed font-sans">
           The {displayName} instance{" "}
           {isAzure ? "" : `is in the ${instance.f} family `}with{" "}
-          <span className="text-white">{instance.v} vCPUs</span> and{" "}
-          <span className="text-white">{instance.m} GiB</span> of memory,
+          <span className="text-foreground">{instance.v} vCPUs</span> and{" "}
+          <span className="text-foreground">{instance.m} GiB</span> of memory,
           starting at{" "}
-          <span className="text-emerald-400 font-semibold">
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
             {formatCost(getPrice("ondemand"))}
           </span>
           {intervalSuffix}.
@@ -559,8 +559,8 @@ export function InstanceDetail({
         {/* Sidebar */}
         <div className="space-y-8">
           {/* Quick Pricing Summary */}
-          <div className="rounded-xl border border-neutral-800/60 bg-neutral-950 p-6 shadow-sm">
-            <h3 className="mb-4 text-[11px] font-bold uppercase tracking-widest text-neutral-500">
+          <div className="rounded-xl border border-border/60 bg-card p-6">
+            <h3 className="mb-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
               Summary Pricing
             </h3>
             <div className="grid grid-cols-2 gap-x-6 gap-y-5">
@@ -588,10 +588,10 @@ export function InstanceDetail({
                 const price = getPrice(type);
                 return (
                   <div key={label}>
-                    <span className="block text-xl font-bold text-emerald-400">
+                    <span className="block text-xl font-bold text-emerald-600 dark:text-emerald-400">
                       {formatCost(price)}
                     </span>
-                    <span className="text-[10px] text-neutral-500 uppercase font-bold tracking-tight">
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">
                       {label}
                     </span>
                   </div>
@@ -601,13 +601,13 @@ export function InstanceDetail({
           </div>
 
           {/* Filters (2 Columns) */}
-          <div className="space-y-4 rounded-xl border border-neutral-800/60 bg-neutral-900/10 p-5">
-            <h3 className="text-[11px] font-bold uppercase tracking-widest text-neutral-500">
+          <div className="space-y-4 rounded-xl border border-border/60 bg-secondary/10 p-5">
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
               Filters
             </h3>
             <div className="grid grid-cols-2 gap-3 pb-2">
               <div className="flex flex-col gap-1.5 transition-all">
-                <span className="text-[11px] font-bold text-neutral-500 tracking-wider ml-1 uppercase">
+                <span className="text-[11px] font-bold text-muted-foreground tracking-wider ml-1 uppercase">
                   Region
                 </span>
                 <FilterDropdown
@@ -620,7 +620,7 @@ export function InstanceDetail({
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-bold text-neutral-500 tracking-wider ml-1 uppercase">
+                <span className="text-[11px] font-bold text-muted-foreground tracking-wider ml-1 uppercase">
                   OS
                 </span>
                 <FilterDropdown
@@ -644,7 +644,7 @@ export function InstanceDetail({
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-bold text-neutral-500 tracking-wider ml-1 uppercase">
+                <span className="text-[11px] font-bold text-muted-foreground tracking-wider ml-1 uppercase">
                   Interval
                 </span>
                 <FilterDropdown
@@ -655,7 +655,7 @@ export function InstanceDetail({
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-bold text-neutral-500 tracking-wider ml-1 uppercase">
+                <span className="text-[11px] font-bold text-muted-foreground tracking-wider ml-1 uppercase">
                   Currency
                 </span>
                 <FilterDropdown
@@ -668,7 +668,7 @@ export function InstanceDetail({
                 />
               </div>
               <div className="col-span-2 flex flex-col gap-1.5 pt-1">
-                <span className="text-[11px] font-bold text-neutral-500 tracking-wider ml-1 uppercase">
+                <span className="text-[11px] font-bold text-muted-foreground tracking-wider ml-1 uppercase">
                   {COMMITMENT_LABELS[provider.toUpperCase()] || "Commitment"}
                 </span>
                 <FilterDropdown
@@ -692,7 +692,7 @@ export function InstanceDetail({
                 setReservedPlan(defaultPlan);
                 setCurrency("usd");
               }}
-              className="w-full h-9 rounded-lg border border-neutral-800 bg-neutral-900 px-4 text-[11px] font-bold uppercase tracking-widest text-neutral-500 hover:text-white transition-colors cursor-pointer"
+              className="w-full h-9 rounded-lg border border-border bg-secondary px-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               Reset View
             </button>
@@ -703,36 +703,36 @@ export function InstanceDetail({
               <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead>
-                    <tr className="text-[10px] text-neutral-500 uppercase tracking-widest bg-neutral-900/10">
-                      <th className="px-4 py-2 text-left font-bold border-b border-neutral-800/30">
+                    <tr className="text-[10px] text-muted-foreground uppercase tracking-widest bg-secondary/10">
+                      <th className="px-4 py-2 text-left font-bold border-b border-border/30">
                         Size
                       </th>
-                      <th className="px-4 py-2 text-left font-bold border-b border-neutral-800/30">
+                      <th className="px-4 py-2 text-left font-bold border-b border-border">
                         vCPUs
                       </th>
-                      <th className="px-4 py-2 text-left font-bold border-b border-neutral-800/30">
+                      <th className="px-4 py-2 text-left font-bold border-b border-border">
                         Mem
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-neutral-800/30">
+                  <tbody className="divide-y divide-border">
                     {familySiblings.map((sib) => (
                       <tr
                         key={sib.n}
-                        className={`hover:bg-neutral-900/20 ${sib.n === instanceName ? "bg-blue-500/5" : ""}`}
+                        className={`hover:bg-secondary/20 ${sib.n === instanceName ? "bg-blue-500/5" : ""}`}
                       >
                         <td className="px-4 py-2.5">
                           <Link
                             href={`/${provider.toLowerCase()}/${region}/instance/${encodeURIComponent(sib.n)}`}
-                            className={`font-medium transition-colors ${sib.n === instanceName ? "text-white font-bold" : "text-blue-400 hover:text-blue-300"}`}
+                            className={`font-medium transition-colors ${sib.n === instanceName ? "text-foreground font-bold" : "text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"}`}
                           >
                             {sib.n}
                           </Link>
                         </td>
-                        <td className="px-4 py-2.5 text-neutral-300 font-mono">
+                        <td className="px-4 py-2.5 text-muted-foreground font-mono">
                           {sib.v}
                         </td>
-                        <td className="px-4 py-2.5 text-neutral-300 font-mono">
+                        <td className="px-4 py-2.5 text-muted-foreground font-mono">
                           {sib.m}G
                         </td>
                       </tr>
@@ -746,7 +746,7 @@ export function InstanceDetail({
 
         {/* Content */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-500/10 border border-blue-400/20 rounded-xl text-blue-400 text-xs font-semibold">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-500/10 border border-blue-400/20 rounded-xl text-blue-600 dark:text-blue-400 text-xs font-semibold">
             <Info className="h-4 w-4" />
             <span>Note: All tables below are also dropdowns</span>
           </div>
@@ -819,11 +819,11 @@ export function InstanceDetail({
       </div>
 
       {/* Pagination Footer */}
-      <div className="flex items-center justify-between mt-12 pt-6 border-t border-neutral-800/60">
+      <div className="flex items-center justify-between mt-12 pt-6 border-t border-border/60">
         {prevInstance ? (
           <Link
             href={`/${provider.toLowerCase()}/${region}/instance/${encodeURIComponent(prevInstance.n)}`}
-            className="inline-flex items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900/40 px-4 py-2 text-sm font-medium text-neutral-300 hover:bg-neutral-800 transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary/40 px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             {isAzure && prevInstance.f
@@ -837,7 +837,7 @@ export function InstanceDetail({
         {nextInstance ? (
           <Link
             href={`/${provider.toLowerCase()}/${region}/instance/${encodeURIComponent(nextInstance.n)}`}
-            className="inline-flex items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900/40 px-4 py-2 text-sm font-medium text-neutral-300 hover:bg-neutral-800 transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary/40 px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent transition-colors"
           >
             {isAzure && nextInstance.f
               ? nextInstance.f.replace(/_/g, " ")

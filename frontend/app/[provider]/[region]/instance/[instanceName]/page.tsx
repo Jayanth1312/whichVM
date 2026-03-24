@@ -24,7 +24,7 @@ export default async function InstancePage({ params }: PageProps) {
           : "AWS";
 
   return (
-    <div className="mx-auto max-w-[1400px] p-4 sm:p-6 pt-16">
+    <div className="mx-auto max-w-[1400px] p-4 sm:p-6 pt-3 sm:pt-6 md:pt-4">
       <InstanceDetail
         provider={providerDisplay}
         region={region}
