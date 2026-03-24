@@ -25,7 +25,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const description = `${provider} ${instanceName} instance is in the ${instance.f} family with ${instance.v} vCPUs, ${instance.m} GiB of memory and ${instance.a} architecture.`;
+  let minPrice = 0;
+  if (instance.pr) {
+    const vals = Object.values(instance.pr).filter((v: any) => typeof v === "number" && v > 0) as number[];
+    if (vals.length > 0) minPrice = Math.min(...vals);
+  }
+
+  const priceStr = minPrice > 0 
+    ? ` Starting at $${minPrice.toFixed(minPrice > 1 ? 2 : 4)}/hr.` 
+    : "";
+
+  const description = `${provider} ${instanceName} instance is in the ${instance.f} family with ${instance.v} vCPUs, ${instance.m} GiB of memory and ${instance.a} architecture.${priceStr}`;
 
   return {
     title: `${instanceName} Pricing and Specs - WhichVM`,

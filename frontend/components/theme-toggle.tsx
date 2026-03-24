@@ -230,50 +230,78 @@ interface ThemeToggleProps {
 
 export function ThemeToggle({
   className,
-  variant = "circle",
-  start = "top-right",
+  variant: forcedVariant,
+  start: forcedStart,
   blur = false,
 }: ThemeToggleProps) {
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  const variant = forcedVariant || (isMobile ? "rectangle" : "circle");
+  const start = forcedStart || (isMobile ? "top-down" : "top-right");
+
   const { isDark, toggleTheme } = useThemeToggle({ variant, start, blur });
+  const uniqueId = React.useId().replace(/:/g, "");
 
   return (
     <button
       type="button"
       className={cn(
-        "h-9 w-9 md:h-9 md:w-9 rounded-full bg-transparent border-none shadow-none cursor-pointer flex items-center justify-center active:scale-95",
+        "h-9 w-9 md:h-10 md:w-10 cursor-pointer rounded-full transition-all duration-300 active:scale-95 flex items-center justify-center p-1 bg-background text-foreground border border-border hover:bg-accent/50 hover:text-accent-foreground",
         className,
       )}
       onClick={toggleTheme}
       aria-label="Toggle theme"
     >
       <span className="sr-only">Toggle theme</span>
-      <svg viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-        <motion.g
-          animate={{ rotate: isDark ? -180 : 0 }}
-          transition={{ ease: "easeInOut", duration: 0.5 }}
-        >
-          {/* Outer Ring Circle Outline filled with White */}
-          <circle
-            cx="120"
-            cy="120"
-            r="117"
-            stroke={isDark ? "white" : "black"}
-            strokeWidth="3.5"
-            fill="white"
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+        fill="currentColor"
+        strokeLinecap="round"
+        viewBox="0 0 32 32"
+        className="w-[20px] h-[20px] md:w-[24px] md:h-[24px] stroke-foreground fill-foreground"
+      >
+        <clipPath id={`skiper-btn-${uniqueId}`}>
+          <motion.path
+            animate={{ y: isDark ? 10 : 0, x: isDark ? -12 : 0 }}
+            transition={{ ease: "easeInOut", duration: 0.35 }}
+            d="M0-5h30a1 1 0 0 0 9 13v24H0Z"
           />
-
-          {/* Inner Center-Left Half Circle - Black */}
-          <path
-            d="M120 67.5 A 52.5 52.5 0 0 0 67.5 120 A 52.5 52.5 0 0 0 120 172.5 Z"
-            fill="black"
+        </clipPath>
+        <g clipPath={`url(#skiper-btn-${uniqueId})`}>
+          <motion.circle
+            animate={{ r: isDark ? 10 : 8 }}
+            transition={{ ease: "easeInOut", duration: 0.35 }}
+            cx="16"
+            cy="16"
           />
-
-          {/* Outer Concentric Crescent - Black - Meets center at 52.5 radius */}
-          <path
-            d="M120 18 A 102 102 0 0 1 222 120 A 102 102 0 0 1 120 222 L 120 172.5 A 52.5 52.5 0 0 0 172.5 120 A 52.5 52.5 0 0 0 120 67.5 Z"
-            fill="black"
-          />
-        </motion.g>
+          <motion.g
+            animate={{
+              rotate: isDark ? -100 : 0,
+              scale: isDark ? 0.5 : 1,
+              opacity: isDark ? 0 : 1,
+            }}
+            transition={{ ease: "easeInOut", duration: 0.35 }}
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
+            <path d="M16 5.5v-4" />
+            <path d="M16 30.5v-4" />
+            <path d="M1.5 16h4" />
+            <path d="M26.5 16h4" />
+            <path d="m23.4 8.6 2.8-2.8" />
+            <path d="m5.7 26.3 2.9-2.9" />
+            <path d="m5.8 5.8 2.8 2.8" />
+            <path d="m23.4 23.4 2.9 2.9" />
+          </motion.g>
+        </g>
       </svg>
     </button>
   );
