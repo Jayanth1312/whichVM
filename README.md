@@ -15,7 +15,6 @@
 | :--- | :--- |
 | **⚡ Instant Search** | Real-time filtering across thousands of VM types from AWS, Azure, and Google Cloud. |
 | **📦 Zstd Compression** | Implements `MsgPack` + `Zstandard (zstd)` for **10x data payload shrinkage**, ensuring instant initial load. |
-| **🔄 Live Synchronization** | Automated backend pipeline fetching fresh pricing directly from upstream Cloud APIs. |
 | **🗂️ Zero-DB Dashboard** | Purely file-based architecture using compressed streaming; no database required for the main UI. |
 | **📱 Responsive UI** | Built with Next.js App Router and Shadcn UI, optimized for both desktop and mobile layouts. |
 | **📉 Multi-Plan Pricing** | Support for **Reserved**, **Spot**, **Savings Plans**, and **Hybrid Benefit** across all providers. |
