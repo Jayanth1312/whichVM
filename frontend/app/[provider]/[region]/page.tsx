@@ -8,7 +8,9 @@ interface PageProps {
   }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
   const resolvedParams = await params;
   const p = resolvedParams.provider.toUpperCase();
   const r = resolvedParams.region;
@@ -57,7 +59,7 @@ export default async function Page({ params }: PageProps) {
           : "Azure";
 
   return (
-    <div className="mx-auto max-w-[1400px] p-4 sm:p-6 pt-0 sm:pt-6 md:pt-4">
+    <div className="mx-auto max-w-[1400px] p-4 sm:p-6 pt-0 sm:pt-0 md:pt-4">
       <DataTable provider={providerName} initialRegion={r} />
     </div>
   );

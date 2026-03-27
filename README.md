@@ -1,117 +1,85 @@
-# whichvm.com
+# 🗄️ WhichVM: The Ultimate Cloud Compare
 
-**WhichVM** is a high-performance comparison tool for Cloud Virtual Machines. It aggregates, compresses, and streams instance specifications and pricing across **AWS**, **Azure**, and **GCP** into an interactive, lightning-fast frontend dashboard.
+[![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Zstd](https://img.shields.io/badge/Zstandard-47A248?style=for-the-badge&logo=fastapi&logoColor=white)](https://github.com/facebook/zstd)
+[![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
 
----
-
-## 🚀 Key Features
-
-- **Side-by-Step Comparisons**: View and contrast VM families across vendors on compute, storage, RAM, and GPUs.
-- **Extreme Compression Pipeline**: Uses `MsgPack` and `Zstandard (zstd)` for ~10x data payload shrinkage to facilitate instant downloads of large lookup datasets.
-- **Client-Side Virtualization**: Uses `@tanstack/react-virtual` with dynamic infinite grid scrolling supporting thousands of row updates seamlessly.
-- **Provider Parity**: Seamless parsing support across standard layouts into a layout system (AWS EC2, Azure VMs, GCP Compute Engine).
+**WhichVM** is an elite, high-performance comparison engine for Cloud Virtual Machines. It aggregates, compresses, and streams exhaustive instance specs and pricing across **AWS**, **Azure**, and **GCP** into a lightning-fast, interactive dashboard.
 
 ---
 
-## 🛠️ Technology Stack
+### 🔥 Key Features
 
-| Layer | Technologies |
+| Feature | Description |
 | :--- | :--- |
-| **Frontend** | [Next.js](https://nextjs.org/) (App Router), [Shadcn UI](https://ui.shadcn.com/), [Tanstack Table](https://tanstack.com/table/v8), [Framer Motion](https://framer.com/motion) |
-| **Backend** | [Express](https://expressjs.com/) & [TypeScript](https://www.typescriptlang.org/), [MongoDB Node Driver](https://mongodb.github.io/node-mongodb-native/), `fzstd`, `@msgpack/msgpack` |
-| **Data Source** | [CloudPrice v2 API](https://data.cloudprice.net/) |
+| **⚡ Instant Search** | Real-time filtering across thousands of VM types from AWS, Azure, and Google Cloud. |
+| **📦 Zstd Compression** | Implements `MsgPack` + `Zstandard (zstd)` for **10x data payload shrinkage**, ensuring instant initial load. |
+| **🔄 Live Synchronization** | Automated backend pipeline fetching fresh pricing directly from upstream Cloud APIs. |
+| **🗂️ Zero-DB Dashboard** | Purely file-based architecture using compressed streaming; no database required for the main UI. |
+| **📱 Responsive UI** | Built with Next.js App Router and Shadcn UI, optimized for both desktop and mobile layouts. |
+| **📉 Multi-Plan Pricing** | Support for **Reserved**, **Spot**, **Savings Plans**, and **Hybrid Benefit** across all providers. |
 
 ---
 
-## 📂 Project Structure
+### 🛡️ Technology Stack
 
-```text
-├── backend/                  # Express API & Data Sync
-│   ├── src/
-│   │   ├── apis/             # REST endpoints (Cron, Data, Instances)
-│   │   ├── pipeline/         # Data Pipeline (Compressor, Orchestrator, Mongo Sync)
-│   │   ├── sync-*.js         # CloudPrice API provider listing fetchers
-│   │   └── server.ts         # Server entry point
-│   └── output/               # Static/Compressed build assets storage
-└── frontend/                 # Next.js Dashboard
-    ├── app/                  # App Router & views ([provider], compare)
-    └── components/           # Reusable data grids & layouts
+- **Frontend**: [Next.js](https://nextjs.org/) (App Router), [Shadcn UI](https://ui.shadcn.com/), [Tanstack Table](https://tanstack.com/table/v8), [Framer Motion](https://framer.com/motion)
+- **Backend**: [Express](https://expressjs.com/) with [TypeScript](https://www.typescriptlang.org/), `fzstd` for ultra-fast compression.
+- **Compression**: `MsgPack` + `Zstandard (zstd)` for binary-level data optimization.
+- **Storage**: [Vercel Blob Storage](https://vercel.com/storage/blob) for serving global compressed datasets.
+
+---
+
+### 🏗️ Data Architecture
+
+```mermaid
+graph TD
+    A[Cloud API Sources] -->|Sync:AWS/Azure/GCP| B[Backend Server]
+    B -->|Zstd Compression| C[Compressed .msgpack.zst]
+    C -->|Upload| D[Vercel Blob / Local Disk]
+    D -->|Streaming API| E[Frontend UI]
+    E -->|Browser-Side Decompression| F[Tanstack Table]
+    F -->|LocalStorage| G[User Filters]
 ```
 
 ---
 
-## ⚙️ Prerequisites
+### ⚙️ Local Development
 
-- **Node.js**: `v22+`
-- **MongoDB**: Active connection string for synchronization targets
-
----
-
-## 🛠️ Getting Started
-
-### 1. Backend Setup
-
+#### 1. Backend Configuration
 ```bash
 cd backend
 npm install
 ```
 
-Create a `.env` file in the `backend/` directory from `.env.example`:
-
-```bash
+Create a `.env` file in `backend/`:
+```env
 PORT=5000
-MONGO_URI=your_mongodb_connection_uri
-DB_NAME=whichvm
-CLOUDPRICE_KEY=your_cloudprice_api_key
+# Individual keys for each provider
+CLOUDPRICE_AWS=your_key
+CLOUDPRICE_AZURE=your_key
+CLOUDPRICE_GCP=your_key
+# For production
+# BLOB_READ_WRITE_TOKEN=your_token
+# CRON_SECRET=your_secret
 ```
 
-**Run Development Server:**
-```bash
-npm run dev
-# Server binds to http://localhost:5000 (or as configured)
-```
+**Run Backend:** `npm run dev`
+**Run Initial Sync:** `npm run cron` (Fetches and compresses cloud data into `output/`)
 
-#### 🔄 Data Pipeline Running
-
-To fetch initial pricing files (placed in `backend/output/` and MongoDB sync points), trigger the sequentially-managed updater list:
-
-```bash
-# Run AWS, Azure, GCP APIs sequentially and aggregate output nodes
-npm run cron
-```
-
----
-
-### 2. Frontend Setup
-
+#### 2. Frontend Configuration
 ```bash
 cd frontend
 npm install
-```
-
-Optionally, create a `.env` file in the `frontend/` directory to configure the Blob CDN URL. This allows the frontend to fetch data files directly from the CDN instead of proxying through the backend:
-
-```bash
-NEXT_PUBLIC_BLOB_CDN_URL=https://your-project-id.public.blob.vercel-storage.com
-```
-
-**Run Development Server:**
-```bash
 npm run dev
-# App listens on http://localhost:3000
 ```
 
+Create a `.env` file in `frontend/`:
+```env
+NEXT_PUBLIC_BLOB_CDN_URL=your_blob_cdn_url
+```
 ---
 
-## 🧩 Data Ingestion Flow
-
-```mermaid
-graph LR
-    A[CloudPrice API] -->|Parallel Syncs| B(JSON Dump outputs)
-    B --> C{Orchestrator}
-    C -->|MsgPack + Zstd| D[Output Compressed Files]
-    C -->|Upload| E[MongoDB / Vercel Blob]
-    D -->|Download Streaming| F[Frontend Cache Grids]
-```
-
-To sync your data locally while starting development, always execute `npm run cron` inside the `backend/` scope inside your routine maintenance updates.
+---
+*Built for developers who care about cloud cost and performance by [Jayanth](https://github.com/Jayanth1312).*

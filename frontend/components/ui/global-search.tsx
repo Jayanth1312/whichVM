@@ -170,7 +170,7 @@ export function GlobalSearch() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full md:max-w-[320px]"
+      className="relative w-full md:max-w-[180px] lg:max-w-[320px]"
     >
       <div className="relative flex items-center w-full">
         <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />

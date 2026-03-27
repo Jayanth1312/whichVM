@@ -109,10 +109,10 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
       variant="outline"
       size="sm"
       onClick={() => router.push("/compare")}
-      className="h-9 w-9 md:h-10 md:w-auto p-0 md:pl-3 md:pr-4 aspect-square md:aspect-auto flex items-center justify-center gap-1.5 md:gap-2 rounded-lg border border-border! transition-colors cursor-pointer bg-card/50 hover:bg-secondary! shrink-0"
+      className="h-9 w-9 md:h-10 md:w-10 lg:w-auto p-0 lg:pl-3 lg:pr-4 aspect-square lg:aspect-auto flex items-center justify-center gap-1.5 lg:gap-2 rounded-lg border border-border! transition-colors cursor-pointer bg-card/50 hover:bg-secondary! shrink-0"
     >
       <Columns2 className="w-4 h-4 md:w-[18px] md:h-[18px] text-foreground" strokeWidth={2} />
-      <span className="hidden md:inline-block text-[13px] md:text-[14px] font-semibold text-foreground">
+      <span className="hidden lg:inline-block text-[13px] md:text-[14px] font-semibold text-foreground">
         Compare
       </span>
     </Button>
@@ -184,7 +184,7 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
         </nav>
 
         {/* Right: Actions / Mobile Bottom Row */}
-        <div className="flex items-center w-full md:w-auto gap-3 md:gap-5 justify-start md:justify-end mt-2 md:mt-0">
+        <div className="flex items-center w-full md:w-auto gap-3 md:gap-3 lg:gap-5 justify-start md:justify-end mt-2 md:mt-0">
           {/* Mobile Navigation */}
           <div className="flex md:hidden items-center h-full overflow-hidden shrink w-auto max-w-[calc(100vw-80px)]">
             <nav className="flex items-center h-full gap-6 sm:gap-5 overflow-x-auto no-scrollbar w-full">

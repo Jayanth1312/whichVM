@@ -1164,8 +1164,8 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
       {/* Mobile Filter Toggle */}
       <div
         className={cn(
-          "md:hidden flex items-center justify-between border-b border-border py-3 cursor-pointer hover:bg-secondary/30 transition-colors -mx-4 px-4 sm:-mx-6 sm:px-6",
-          !isMobileFiltersOpen && "mb-5"
+          "md:hidden flex items-center justify-between border-b border-border py-4 sm:py-5 cursor-pointer hover:bg-secondary/30 transition-colors -mx-4 px-4 sm:-mx-6 sm:px-6",
+          !isMobileFiltersOpen && "mb-5 sm:mb-6"
         )}
         onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
       >
@@ -1180,7 +1180,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
         "mb-4 md:mb-6",
         isMobileFiltersOpen ? "block" : "hidden md:block"
       )}>
-        <div className="grid grid-cols-2 md:flex md:flex-wrap items-end gap-3 w-full pt-4 pb-0 md:pt-0 md:pb-0">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap items-end gap-3 w-full pt-2 pb-0 md:pt-0 md:pb-0">
 
           {/* Columns Dropdown */}
           <div className="flex flex-col gap-1.5 col-span-1 md:col-span-none">
@@ -1304,7 +1304,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
           </div>
 
           {/* Payment Term Filter */}
-          <div className="flex flex-col gap-1.5 col-span-2 md:col-span-none">
+          <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1 md:col-span-none">
             <span className="text-[11px] font-bold text-muted-foreground tracking-wider ml-1 whitespace-nowrap">
               Payment Term
             </span>
@@ -1319,7 +1319,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
           </div>
 
           {/* Region Filter */}
-          <div className="flex flex-col gap-1.5 col-span-2 md:col-span-none">
+          <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1 md:col-span-none">
             <span className="text-[11px] font-bold text-muted-foreground tracking-wider ml-1">
               Region
             </span>
