@@ -44,7 +44,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: `${instanceName} Pricing and Specs - WhichVM`,
       description,
       type: "website",
-    }
+      url: `https://whichvm.com/${resolvedParams.provider}/${region}/instance/${resolvedParams.instanceName}`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${instanceName} Pricing and Specs - WhichVM`,
+      description,
+    },
   };
 }
 
