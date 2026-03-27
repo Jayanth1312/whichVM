@@ -66,7 +66,7 @@ import {
 import { getDataUrl } from "@/lib/api-utils";
 
 const DEFAULT_REGIONS: Record<string, string> = {
-  Azure: "eastus",
+  AZURE: "eastus",
   GCP: "us-central1",
   AWS: "us-east-1",
 };
@@ -351,7 +351,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
   const [rowSelection, setRowSelection] = React.useState({});
   const selectedCount = Object.keys(rowSelection).length;
   const [region, setRegion] = React.useState(
-    initialRegion || DEFAULT_REGIONS[provider] || "eastus",
+    initialRegion || DEFAULT_REGIONS[provider.toUpperCase()] || "eastus",
   );
   const [pricing, setPricing] = React.useState("hourly");
   const [currency, setCurrency] = React.useState("usd");
@@ -366,7 +366,8 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
   const [azureHybridBenefit, setAzureHybridBenefit] = React.useState("No"); // Yes, No
   const [isRestored, setIsRestored] = React.useState(false);
 
-  const targetKey = `${provider.toLowerCase()}:${region || initialRegion || DEFAULT_REGIONS[provider] || "eastus"}`;
+  const effectiveRegion = (initialRegion && initialRegion !== region) ? initialRegion : region;
+  const targetKey = `${provider.toLowerCase()}:${effectiveRegion}`;
   const [loadedDataKey, setLoadedDataKey] = React.useState(targetKey);
 
   const [allData, setAllData] = React.useState<any[]>(
@@ -532,7 +533,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
     return () => {
       cancelled = true;
     };
-  }, [provider, region]);
+  }, [provider, region, initialRegion]);
 
   // ─── Background warming: eagerly decode ALL regions across ALL providers ──
   React.useEffect(() => {
