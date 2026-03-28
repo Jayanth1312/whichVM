@@ -120,11 +120,11 @@ export function FilterDropdown({
         ref={buttonRef}
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex h-10 w-full items-center justify-between rounded-lg border border-border bg-secondary px-4 text-sm text-foreground transition-colors hover:bg-accent cursor-pointer"
+        className="flex h-10 w-full items-center justify-between rounded-lg border border-border bg-secondary px-4 text-sm text-foreground hover:bg-accent cursor-pointer"
       >
         <span className="truncate">{selectedLabel}</span>
         <ChevronDown
-          className={`ml-2 h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+          className={`ml-2 h-4 w-4 text-muted-foreground ${
             open ? "rotate-180" : ""
           }`}
         />
@@ -172,7 +172,7 @@ export function FilterDropdown({
                     setOpen(false);
                     setSearch("");
                   }}
-                  className={`flex w-full items-center justify-between gap-2 px-4 py-2 text-left text-sm transition-colors cursor-pointer group ${
+                  className={`flex w-full items-center justify-between gap-2 px-4 py-2 text-left text-sm cursor-pointer group ${
                     opt.value === value || i === activeIndex
                       ? "bg-accent/50 text-foreground"
                       : "text-muted-foreground hover:bg-accent"
@@ -191,7 +191,7 @@ export function FilterDropdown({
                     </span>
                   </div>
                   {searchable && (
-                    <span className="text-[10px] text-muted-foreground font-mono group-hover:text-muted-foreground/80 transition-colors">
+                    <span className="text-[10px] text-muted-foreground font-mono group-hover:text-muted-foreground/80">
                       {opt.value}
                     </span>
                   )}

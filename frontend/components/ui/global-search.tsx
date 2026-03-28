@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Search, Loader2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+
 import { useRouter } from "next/navigation";
 import { decompress as zstdDecompress } from "fzstd";
 import { decode } from "@msgpack/msgpack";
@@ -219,12 +219,8 @@ export function GlobalSearch() {
         )}
       </div>
 
-      <AnimatePresence>
-        {open && hits.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
+      {open && hits.length > 0 && (
+          <div
             className="absolute left-0 right-0 mt-1 z-50 rounded-md border border-border bg-popover/95 backdrop-blur-md shadow-lg"
           >
             <div className="py-1 max-h-[380px] overflow-y-auto">
@@ -233,7 +229,7 @@ export function GlobalSearch() {
                   key={`${hit.provider}-${hit.instanceType}-${i}`}
                   onClick={() => handleSelect(hit)}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-secondary/80 transition-colors",
+                    "flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-secondary/80",
                     i === activeIndex && "bg-secondary/80"
                   )}
                 >
@@ -253,9 +249,8 @@ export function GlobalSearch() {
                 </div>
               ))}
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
     </div>
   );
 }

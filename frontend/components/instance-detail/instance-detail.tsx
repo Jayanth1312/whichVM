@@ -26,7 +26,7 @@ import {
   FilterDropdown,
   type FilterOption,
 } from "@/components/ui/filter-dropdown";
-import { cachedFetch } from "@/lib/cache";
+import { cachedFetch, getDecodedInstances, setDecodedInstances } from "@/lib/cache";
 import { getDataUrl } from "@/lib/api-utils";
 
 const API_BASE = process.env.NEXT_PUBLIC_BLOB_CDN_URL || "/api/data";
@@ -258,16 +258,16 @@ function DetailSection({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border font-sans transition-all duration-200">
+    <div className="overflow-hidden rounded-lg border border-border font-sans">
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between bg-secondary/80 px-4 py-3 cursor-pointer select-none hover:bg-accent transition-colors"
+        className="flex items-center justify-between bg-secondary/80 px-4 py-3 cursor-pointer select-none hover:bg-accent"
       >
         <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
           {title}
         </h3>
         <ChevronDown
-          className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "" : "-rotate-90"}`}
+          className={`h-4 w-4 text-muted-foreground ${isOpen ? "" : "-rotate-90"}`}
         />
       </div>
       {isOpen && (
@@ -275,7 +275,7 @@ function DetailSection({
           {rows.map((row, i) => (
             <div
               key={i}
-              className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-secondary/40"
+              className="flex items-center justify-between px-4 py-3 hover:bg-secondary/40"
             >
               <span className="text-sm text-muted-foreground pr-4">{row.label}</span>
               <div className="text-right">{renderValue(row.value)}</div>
@@ -296,7 +296,6 @@ export function InstanceDetail({
 }: InstanceDetailProps) {
   const router = useRouter();
 
-  // State
   const [instance, setInstance] = React.useState<RawInstance | null>(null);
   const [allInstances, setAllInstances] = React.useState<RawInstance[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -350,9 +349,27 @@ export function InstanceDetail({
     fetchRegions();
   }, [provider]);
 
-  // Fetch instance data
+  // Fetch instance data — IDB-first for instant reload
   React.useEffect(() => {
-    const fetchData = async () => {
+    const cacheKey = `${provider.toLowerCase()}:${region}`;
+
+    const loadFromIDB = async (): Promise<boolean> => {
+      try {
+        const cached = await getDecodedInstances(cacheKey);
+        if (cached && cached.length > 0) {
+          setAllInstances(cached);
+          const found = cached.find((inst: any) => inst.n === instanceName);
+          if (found) {
+            setInstance(found);
+            setIsLoading(false);
+            return true;
+          }
+        }
+      } catch {}
+      return false;
+    };
+
+    const loadFromNetwork = async () => {
       setIsLoading(true);
       setError(null);
       try {
@@ -367,10 +384,10 @@ export function InstanceDetail({
         const regionFile: any = decode(decompressed);
 
         if (regionFile?.instances) {
-          setAllInstances(regionFile.instances);
-          const found = regionFile.instances.find(
-            (inst: any) => inst.n === instanceName,
-          );
+          const instances = regionFile.instances;
+          setAllInstances(instances);
+          setDecodedInstances(cacheKey, instances);
+          const found = instances.find((inst: any) => inst.n === instanceName);
           if (found) setInstance(found);
           else setError(`Instance "${instanceName}" not found in this region`);
         } else setError("No instances in response");
@@ -380,7 +397,11 @@ export function InstanceDetail({
         setIsLoading(false);
       }
     };
-    fetchData();
+
+    // Try IDB first — if it hits, no loading state is ever shown
+    loadFromIDB().then((hit) => {
+      if (!hit) loadFromNetwork();
+    });
   }, [provider, region, instanceName]);
 
   const handleRegionChange = (newRegion: string) => {
@@ -430,7 +451,9 @@ export function InstanceDetail({
   if (error || !instance)
     return (
       <div className="flex flex-col items-center justify-center py-32 text-center px-4">
-        <div className="mb-4 text-4xl">⚠️</div>
+        <div className="mb-4 h-12 w-12 rounded-full border-2 border-destructive/30 flex items-center justify-center">
+          <Info className="h-6 w-6 text-destructive" />
+        </div>
         <p className="text-lg font-medium text-foreground">Instance Not Found</p>
         <p className="mt-2 text-sm text-muted-foreground">{error}</p>
         <button
@@ -507,7 +530,7 @@ export function InstanceDetail({
       : instanceName.replace(/_/g, " ");
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 font-sans">
+    <div className="font-sans">
       {/* Top Section: Breadcrumb & Title */}
       <div className="mb-10">
         <Breadcrumb className="mb-4">
@@ -515,7 +538,7 @@ export function InstanceDetail({
             <BreadcrumbItem>
               <BreadcrumbLink
                 asChild
-                className="text-muted-foreground hover:text-foreground transition-colors text-[13px] font-medium"
+                className="text-muted-foreground hover:text-foreground text-[13px] font-medium"
               >
                 <Link href="/">Instances</Link>
               </BreadcrumbLink>
@@ -524,7 +547,7 @@ export function InstanceDetail({
             <BreadcrumbItem>
               <BreadcrumbLink
                 asChild
-                className="text-muted-foreground hover:text-foreground transition-colors text-[13px] font-medium capitalize"
+                className="text-muted-foreground hover:text-foreground text-[13px] font-medium capitalize"
               >
                 <Link href={`/${provider.toLowerCase()}/${region}`}>
                   {provider} {provider === "AWS" ? "EC2" : "Compute"}
@@ -606,7 +629,7 @@ export function InstanceDetail({
               Filters
             </h3>
             <div className="grid grid-cols-2 gap-3 pb-2">
-              <div className="flex flex-col gap-1.5 transition-all">
+              <div className="flex flex-col gap-1.5">
                 <span className="text-[11px] font-bold text-muted-foreground tracking-wider ml-1 uppercase">
                   Region
                 </span>
@@ -692,7 +715,7 @@ export function InstanceDetail({
                 setReservedPlan(defaultPlan);
                 setCurrency("usd");
               }}
-              className="w-full h-9 rounded-lg border border-border bg-secondary px-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              className="w-full h-9 rounded-lg border border-border bg-secondary px-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground cursor-pointer"
             >
               Reset View
             </button>
@@ -724,7 +747,7 @@ export function InstanceDetail({
                         <td className="px-4 py-2.5">
                           <Link
                             href={`/${provider.toLowerCase()}/${region}/instance/${encodeURIComponent(sib.n)}`}
-                            className={`font-medium transition-colors ${sib.n === instanceName ? "text-foreground font-bold" : "text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"}`}
+                            className={`font-medium ${sib.n === instanceName ? "text-foreground font-bold" : "text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"}`}
                           >
                             {sib.n}
                           </Link>
@@ -823,7 +846,7 @@ export function InstanceDetail({
         {prevInstance ? (
           <Link
             href={`/${provider.toLowerCase()}/${region}/instance/${encodeURIComponent(prevInstance.n)}`}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary/40 px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary/40 px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent"
           >
             <ArrowLeft className="h-4 w-4" />
             {isAzure && prevInstance.f
@@ -837,7 +860,7 @@ export function InstanceDetail({
         {nextInstance ? (
           <Link
             href={`/${provider.toLowerCase()}/${region}/instance/${encodeURIComponent(nextInstance.n)}`}
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary/40 px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary/40 px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent"
           >
             {isAzure && nextInstance.f
               ? nextInstance.f.replace(/_/g, " ")

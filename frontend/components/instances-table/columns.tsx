@@ -124,11 +124,11 @@ const apiNameColumn: ColumnDef<Instance> = {
       <div className="px-4 text-left truncate-custom">
         <Link
           href={href}
-          className="text-blue-600 font-mono text-xs cursor-pointer relative group pb-0.5 hover:text-blue-500 transition-colors"
+          className="text-blue-600 font-mono text-xs cursor-pointer relative group pb-0.5 hover:text-blue-500"
           onClick={(e) => e.stopPropagation()}
         >
           {displayName}
-          <span className="absolute bottom-0 left-0 w-0 h-px bg-blue-600 transition-all duration-300 group-hover:w-full" />
+          <span className="absolute bottom-0 left-0 w-0 h-px bg-blue-600 group-hover:w-full" />
         </Link>
       </div>
     );

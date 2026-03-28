@@ -61,6 +61,9 @@ import {
   cachedFetch,
   saveFilterState,
   loadFilterState,
+  isDecodedCached,
+  getDecodedInstances,
+  setDecodedInstances,
   type PersistedFilterState,
 } from "@/lib/cache";
 import { getDataUrl } from "@/lib/api-utils";
@@ -105,6 +108,17 @@ async function fetchAndDecode(
   regionId: string,
   manifest: any | null,
 ): Promise<any[]> {
+  const idbKey = `${providerLower}:${regionId}`;
+
+  // FAST PATH: try IndexedDB decoded cache first (skips network + decompress)
+  try {
+    const cached = await getDecodedInstances(idbKey);
+    if (cached && cached.length > 0) {
+      return cached;
+    }
+  } catch {}
+
+  // SLOW PATH: fetch compressed binary, decompress, decode
   let url = getDataUrl(`/${providerLower}/${regionId}.msgpack.zst`);
 
   // Prefer Blob CDN URL from manifest
@@ -122,8 +136,14 @@ async function fetchAndDecode(
   const compressed = new Uint8Array(arrayBuffer);
   const decompressed = zstdDecompress(compressed);
   const regionFile: any = decode(decompressed);
+  const instances = regionFile?.instances ?? [];
 
-  return regionFile?.instances ?? [];
+  // Store decoded data in IndexedDB for instant reload
+  if (instances.length > 0) {
+    setDecodedInstances(idbKey, instances);
+  }
+
+  return instances;
 }
 
 const COMMITMENT_OPTIONS: Record<string, { label: string; value: string }[]> = {
@@ -301,7 +321,7 @@ function Filter({ column }: { column: Column<any, unknown> }) {
         <TooltipProvider>
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
-              <button className="text-muted-foreground hover:text-foreground transition-colors shrink-0">
+              <button className="text-muted-foreground hover:text-foreground shrink-0">
                 <Info className="h-3.5 w-3.5" />
               </button>
             </TooltipTrigger>
@@ -382,6 +402,10 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
     setLoadedDataKey(targetKey);
     if (regionStore[targetKey]?.length) {
       setAllData(regionStore[targetKey]);
+      setIsLoading(false);
+    } else if (isDecodedCached(targetKey)) {
+      // IDB has data — don't show loading, the effect will populate it in ~5ms
+      setAllData([]);
       setIsLoading(false);
     } else {
       setAllData([]);
@@ -481,22 +505,36 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
 
 
 
-  // ─── Primary data load: instant from memory, or fetch + decode ────
+  // ─── Primary data load: instant from memory, IDB, or fetch + decode ────
   React.useEffect(() => {
     const providerLower = provider.toLowerCase();
     const cacheKey = `${providerLower}:${region}`;
 
     // INSTANT path — data already in memory from background warming
     if (regionStore[cacheKey]?.length) {
-      console.log(`[DataTable] ⚡ Instant swap for ${cacheKey}`);
       setAllData(regionStore[cacheKey]);
       setIsLoading(false);
       return;
     }
 
-    // FETCH path — first visit to this region (don't clear allData to avoid flash)
+    // FETCH path — try IDB first (no loading state), then network
     let cancelled = false;
-    const load = async () => {
+
+    const loadFromIDB = async (): Promise<boolean> => {
+      try {
+        const cached = await getDecodedInstances(cacheKey);
+        if (cached && cached.length > 0 && !cancelled) {
+          regionStore[cacheKey] = cached;
+          setAllData(cached);
+          setIsLoading(false);
+          return true;
+        }
+      } catch {}
+      return false;
+    };
+
+    const loadFromNetwork = async () => {
+      if (cancelled) return;
       setIsLoading(true);
       try {
         let manifest: any = null;
@@ -513,9 +551,6 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
         if (!cancelled) {
           regionStore[cacheKey] = instances;
           setAllData(instances);
-          console.log(
-            `[DataTable] Loaded ${instances.length} instances for ${cacheKey}`,
-          );
         }
       } catch (err) {
         if (!cancelled) {
@@ -529,7 +564,10 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
       }
     };
 
-    load();
+    loadFromIDB().then((hit) => {
+      if (!hit) loadFromNetwork();
+    });
+
     return () => {
       cancelled = true;
     };
@@ -557,9 +595,6 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
         // Get list of all providers defined in manifest (aws, azure, gcp)
         const providersList = Object.keys(manifest.providers ?? {});
 
-        console.log(
-          `[DataTable] 🔥 Warming all data triggers for: ${providersList.join(", ")}`,
-        );
 
         // Queue all warming tasks across all providers
         const limit = createLimiter(5);
@@ -569,9 +604,6 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
           const regionEntries = manifest.providers[prov]?.regions ?? [];
           if (!regionEntries.length) continue;
 
-          console.log(
-            `[DataTable] 🔥 Background warming ${regionEntries.length} regions for ${prov}`,
-          );
 
           for (const entry of regionEntries) {
             promises.push(
@@ -598,9 +630,6 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
 
         if (abort.signal.aborted) return;
 
-        console.log(
-          "[DataTable] ✅ Global warming complete for all providers!",
-        );
         warmingProvider = "ALL_DONE";
       } catch {
         warmingProvider = null; // scale back reset on fail
@@ -1164,7 +1193,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
       {/* Mobile Filter Toggle */}
       <div
         className={cn(
-          "md:hidden flex items-center justify-between border-b border-border py-4 sm:py-5 cursor-pointer hover:bg-secondary/30 transition-colors -mx-4 px-4 sm:-mx-6 sm:px-6",
+          "md:hidden flex items-center justify-between border-b border-border py-4 sm:py-5 cursor-pointer hover:bg-secondary/30 -mx-4 px-4 sm:-mx-6 sm:px-6",
           !isMobileFiltersOpen && "mb-5 sm:mb-6"
         )}
         onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
@@ -1173,7 +1202,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
           <ListFilter className="w-4 h-4 text-muted-foreground" />
           <span className="text-[14px] font-semibold text-foreground">Instance Filters</span>
         </div>
-        <ChevronDown className={cn("w-5 h-5 text-muted-foreground transition-transform duration-300", isMobileFiltersOpen && "rotate-180")} />
+        <ChevronDown className={cn("w-5 h-5 text-muted-foreground", isMobileFiltersOpen && "rotate-180")} />
       </div>
 
       <div className={cn(
@@ -1192,7 +1221,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                 asChild
                 className="focus-visible:ring-0 focus:ring-0 focus:outline-none shadow-none outline-none cursor-pointer"
               >
-                <button className="flex items-center justify-between w-full md:w-[160px] bg-secondary border border-border h-10 text-foreground rounded-lg px-4 hover:bg-accent transition-colors text-sm outline-none focus:outline-none focus-visible:outline-none">
+                <button className="flex items-center justify-between w-full md:w-[160px] bg-secondary border border-border h-10 text-foreground rounded-lg px-4 hover:bg-accent text-sm outline-none focus:outline-none focus-visible:outline-none">
                   <span className="truncate">Display</span>
                   <ChevronDown
                     className="h-4 w-4 text-muted-foreground shrink-0 ml-2"
@@ -1207,7 +1236,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                 <div className="p-2 flex gap-2 border-b border-border mb-1">
                   <button
                     onClick={() => table.toggleAllColumnsVisible(true)}
-                    className="text-[10px] bg-accent hover:bg-accent/80 px-2 py-1 rounded transition-colors uppercase font-bold text-muted-foreground"
+                    className="text-[10px] bg-accent hover:bg-accent/80 px-2 py-1 rounded uppercase font-bold text-muted-foreground"
                   >
                     Select All
                   </button>
@@ -1221,7 +1250,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                       });
                       setColumnVisibility(reset);
                     }}
-                    className="text-[10px] bg-accent hover:bg-accent/80 px-2 py-1 rounded transition-colors uppercase font-bold text-muted-foreground"
+                    className="text-[10px] bg-accent hover:bg-accent/80 px-2 py-1 rounded uppercase font-bold text-muted-foreground"
                   >
                     Reset
                   </button>
@@ -1359,7 +1388,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
             <Button
               variant="ghost"
               onClick={clearFilters}
-              className="text-blue-600 hover:text-blue-500 bg-transparent border-none hover:bg-blue-100 dark:hover:bg-blue-950/40 px-4 font-medium h-10! rounded-lg shadow-none transition-colors cursor-pointer"
+              className="text-blue-600 hover:text-blue-500 bg-transparent border-none hover:bg-blue-100 dark:hover:bg-blue-950/40 px-4 font-medium h-10! rounded-lg shadow-none cursor-pointer"
             >
               Clear Filters
             </Button>
@@ -1370,7 +1399,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
         <div className="md:hidden flex items-center pb-2 pt-3 border-b border-border w-full sm:-mx-6 sm:px-6">
           <div
             onClick={clearFilters}
-            className="text-[14px] font-medium text-blue-600 hover:text-blue-500 cursor-pointer hover:opacity-80 transition-opacity"
+            className="text-[14px] font-medium text-blue-600 hover:text-blue-500 cursor-pointer hover:opacity-80"
           >
             Clear filters
           </div>
@@ -1516,7 +1545,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                   <tr
                     key={row.id}
                     data-index={virtualRow.index}
-                    className={`border-b border-border transition-colors cursor-pointer ${
+                    className={`border-b border-border cursor-pointer ${
                       isSelected ? "bg-blue-500/10!" : "hover:bg-accent/20"
                     }`}
                     onClick={() => row.toggleSelected()}
@@ -1557,7 +1586,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
 
       {/* Compare Bar */}
       {selectedCount > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border backdrop-blur-3xl px-4 sm:px-8 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0 animate-in slide-in-from-bottom-full duration-300">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border backdrop-blur-3xl px-4 sm:px-8 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0">
           <div className="flex items-center gap-4 sm:gap-8 overflow-hidden w-full sm:w-auto">
             {selectedCount <= 3 ? (
               <>
@@ -1572,7 +1601,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                   {table.getSelectedRowModel().rows.map((row) => (
                     <div
                       key={row.id}
-                      className="flex items-center gap-2 bg-secondary/60 hover:bg-secondary border border-border/50 py-1.5 pl-3 pr-2 rounded-full transition-all group/chip shrink-0"
+                      className="flex items-center gap-2 bg-secondary/60 hover:bg-secondary border border-border/50 py-1.5 pl-3 pr-2 rounded-full group/chip shrink-0"
                     >
                       <span className="text-[11px] font-mono text-muted-foreground group-hover/chip:text-foreground truncate max-w-[120px]">
                         {row.original.apiName}
@@ -1582,7 +1611,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
                           e.stopPropagation();
                           row.toggleSelected(false);
                         }}
-                        className="hover:bg-accent p-0.5 rounded-full text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        className="hover:bg-accent p-0.5 rounded-full text-muted-foreground hover:text-foreground cursor-pointer"
                       >
                         <X className="h-2.5 w-2.5" />
                       </button>
@@ -1602,7 +1631,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
             <Button
               variant="ghost"
               onClick={() => setRowSelection({})}
-              className="text-[11px] font-bold text-muted-foreground hover:text-foreground cursor-pointer uppercase tracking-wider h-9 px-4 transition-colors p-0 sm:px-4"
+              className="text-[11px] font-bold text-muted-foreground hover:text-foreground cursor-pointer uppercase tracking-wider h-9 px-4 p-0 sm:px-4"
             >
               Clear All
             </Button>
@@ -1614,7 +1643,7 @@ export function DataTable({ provider, initialRegion }: DataTableProps) {
             >
               <Button
                 disabled={selectedCount < 2 || selectedCount > 3}
-                className={`text-[13px] font-bold px-8 h-10 rounded-full transition-all w-full sm:w-auto ${
+                className={`text-[13px] font-bold px-8 h-10 rounded-full w-full sm:w-auto ${
                   selectedCount >= 2 && selectedCount <= 3
                     ? "bg-primary hover:bg-primary/80 text-primary-foreground cursor-pointer"
                     : "bg-muted text-muted-foreground cursor-not-allowed"

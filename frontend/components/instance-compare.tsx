@@ -35,8 +35,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { decompress as zstdDecompress } from "fzstd";
 import { decode } from "@msgpack/msgpack";
-import { motion } from "framer-motion";
-import { cachedFetch } from "@/lib/cache";
+
+import { cachedFetch, getDecodedInstances, setDecodedInstances } from "@/lib/cache";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -940,7 +940,7 @@ function InstanceSearchColumn({
                 e.stopPropagation();
                 onRemove();
               }}
-              className="text-muted-foreground hover:text-red-400/80 p-1 transition-colors cursor-pointer"
+              className="text-muted-foreground hover:text-red-400/80 p-1 cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
@@ -970,7 +970,7 @@ function InstanceSearchColumn({
                       setQuery("");
                       setIsFocused(false);
                     }}
-                    className="w-full text-left px-4 py-3 hover:bg-accent/80 transition-colors border-b border-border/50 last:border-b-0 cursor-pointer"
+                    className="w-full text-left px-4 py-3 hover:bg-accent/80 border-b border-border/50 last:border-b-0 cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-5 h-5 flex items-center justify-center">
@@ -1134,67 +1134,115 @@ export function ComparePage() {
     [],
   );
 
-  // Load bulk region data for all providers
+  // Load bulk region data for all providers — IDB-first for instant reload
   useEffect(() => {
     let cancelled = false;
-    async function fetchData() {
+    const providers = ["aws", "azure", "gcp"];
+    const d_regs: Record<string, string> = {
+      aws: "us-east-1",
+      azure: "eastus",
+      gcp: "us-central1",
+    };
+
+    async function tryIDB(): Promise<MappedInstance[] | null> {
+      const masterList: MappedInstance[] = [];
+      let allHit = true;
+
+      for (const p of providers) {
+        const r = d_regs[p];
+        try {
+          const cached = await getDecodedInstances(`${p}:${r}`);
+          if (cached && cached.length > 0) {
+            cached.forEach((item: any, i: number) => {
+              masterList.push(mapRawInstance(item, p, r, i));
+            });
+          } else {
+            allHit = false;
+            break;
+          }
+        } catch {
+          allHit = false;
+          break;
+        }
+      }
+
+      return allHit ? masterList : null;
+    }
+
+    async function fetchFromNetwork(): Promise<MappedInstance[]> {
       setIsLoading(true);
-      const providers = ["aws", "azure", "gcp"];
       const masterList: MappedInstance[] = [];
 
-      try {
-        const promises = providers.map(async (p) => {
-          const d_regs: Record<string, string> = {
-            aws: "us-east-1",
-            azure: "eastus",
-            gcp: "us-central1",
-          };
-          const r = d_regs[p];
-          try {
-            const url = getDataUrl(`/${p}/${r}.msgpack.zst`);
-            const response = await cachedFetch(url);
-            if (!response.ok) return;
-
-            const buf = await response.arrayBuffer();
-            const decompressed = zstdDecompress(new Uint8Array(buf));
-            const decoded: any = decode(decompressed);
-            if (decoded?.instances) {
-              decoded.instances.forEach((item: any, i: number) => {
-                masterList.push(mapRawInstance(item, p, r, i));
-              });
-            }
-          } catch (e) {}
-        });
-
-        await Promise.all(promises);
-
-        if (!cancelled) {
-          setAllData(masterList);
-
-          if (initialInstanceNames.length > 0) {
-            const newInstances: (MappedInstance | null)[] = [null, null, null];
-            initialInstanceNames.forEach((name, idx) => {
-              const found = masterList.find(
-                (m: MappedInstance) =>
-                  m.apiName.toLowerCase() === name.toLowerCase(),
-              );
-              if (found && idx < 3) {
-                newInstances[idx] = found;
-                fetchInstanceDetail(found.apiName, found.provider, idx);
-              }
+      const promises = providers.map(async (p) => {
+        const r = d_regs[p];
+        const idbKey = `${p}:${r}`;
+        try {
+          // One more IDB check in case partial
+          const cached = await getDecodedInstances(idbKey);
+          if (cached && cached.length > 0) {
+            cached.forEach((item: any, i: number) => {
+              masterList.push(mapRawInstance(item, p, r, i));
             });
-            setInstances(newInstances);
+            return;
           }
-        }
-      } catch (err) {
-        if (process.env.NODE_ENV !== "production") {
-          console.error("Failed to load compare data:", err);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
+
+          const url = getDataUrl(`/${p}/${r}.msgpack.zst`);
+          const response = await cachedFetch(url);
+          if (!response.ok) return;
+
+          const buf = await response.arrayBuffer();
+          const decompressed = zstdDecompress(new Uint8Array(buf));
+          const decoded: any = decode(decompressed);
+          if (decoded?.instances) {
+            setDecodedInstances(idbKey, decoded.instances);
+            decoded.instances.forEach((item: any, i: number) => {
+              masterList.push(mapRawInstance(item, p, r, i));
+            });
+          }
+        } catch {}
+      });
+
+      await Promise.all(promises);
+      return masterList;
     }
-    fetchData();
+
+    function applyData(masterList: MappedInstance[]) {
+      if (cancelled) return;
+      setAllData(masterList);
+
+      if (initialInstanceNames.length > 0) {
+        const newInstances: (MappedInstance | null)[] = [null, null, null];
+        initialInstanceNames.forEach((name, idx) => {
+          const found = masterList.find(
+            (m: MappedInstance) =>
+              m.apiName.toLowerCase() === name.toLowerCase(),
+          );
+          if (found && idx < 3) {
+            newInstances[idx] = found;
+            fetchInstanceDetail(found.apiName, found.provider, idx);
+          }
+        });
+        setInstances(newInstances);
+      }
+      setIsLoading(false);
+    }
+
+    // Try IDB first (no loading state change), otherwise fetch from network
+    tryIDB().then((idbResult) => {
+      if (idbResult) {
+        applyData(idbResult);
+      } else {
+        fetchFromNetwork()
+          .then(applyData)
+          .catch((err) => {
+            if (process.env.NODE_ENV !== "production") {
+              console.error("Failed to load compare data:", err);
+            }
+            if (!cancelled) setIsLoading(false);
+          });
+      }
+    });
+
     return () => {
       cancelled = true;
     };
@@ -1268,7 +1316,7 @@ export function ComparePage() {
                 <BreadcrumbItem>
                   <BreadcrumbLink
                     asChild
-                    className="text-muted-foreground hover:text-foreground transition-colors text-[13px] font-medium"
+                    className="text-muted-foreground hover:text-foreground text-[13px] font-medium"
                   >
                     <Link href="/">Instances</Link>
                   </BreadcrumbLink>
@@ -1296,37 +1344,23 @@ export function ComparePage() {
               <button
                 onClick={() => setCompareMode("full")}
                 className={cn(
-                  "relative z-10 px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors cursor-pointer",
+                  "relative z-10 px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium cursor-pointer",
                   compareMode === "full"
-                    ? "text-background"
+                    ? "text-background bg-foreground"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {compareMode === "full" && (
-                  <motion.div
-                    layoutId="activeTab"
-                    className="absolute inset-0 bg-foreground rounded-lg -z-10"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
-                  />
-                )}
                 FULL
               </button>
               <button
                 onClick={() => setCompareMode("diff")}
                 className={cn(
-                  "relative z-10 px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors cursor-pointer",
+                  "relative z-10 px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium cursor-pointer",
                   compareMode === "diff"
-                    ? "text-background"
+                    ? "text-background bg-foreground"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {compareMode === "diff" && (
-                  <motion.div
-                    layoutId="activeTab"
-                    className="absolute inset-0 bg-foreground rounded-lg -z-10"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
-                  />
-                )}
                 DIFFERENCES
               </button>
             </div>
@@ -1345,7 +1379,7 @@ export function ComparePage() {
         {/* Comparison Table */}
         <div
           className={cn(
-            "relative transition-opacity duration-300",
+            "relative",
             isLoading ? "opacity-40 pointer-events-none" : "opacity-100",
           )}
         >
@@ -1462,7 +1496,7 @@ export function ComparePage() {
                                 </span>
                                 <button
                                   onClick={clearFilters}
-                                  className="text-xs font-bold text-blue-600 dark:text-blue-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors cursor-pointer h-9 flex items-center"
+                                  className="text-xs font-bold text-blue-600 dark:text-blue-500 hover:text-blue-500 dark:hover:text-blue-400 cursor-pointer h-9 flex items-center"
                                 >
                                   Clear Filters
                                 </button>
@@ -1481,7 +1515,7 @@ export function ComparePage() {
                         return (
                           <tr
                             key={`${section.title}-${specIdx}`}
-                            className="border-b border-border hover:bg-foreground/[0.01] transition-colors group"
+                            className="border-b border-border hover:bg-foreground/1 group"
                           >
                             <td className="md:sticky md:left-0 z-30 bg-card/95 backdrop-blur-md px-6 py-4 border-r border-border text-[13px] font-medium text-muted-foreground group-hover:text-foreground">
                               {spec.label}

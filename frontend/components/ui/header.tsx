@@ -73,7 +73,7 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
         onClick={() => setLocalActive(provider)}
         prefetch={true}
         className={cn(
-          "relative flex h-full items-center px-1 text-[13px] sm:text-[15px] font-medium transition-colors duration-200 cursor-pointer",
+          "relative flex h-full items-center px-1 text-[13px] sm:text-[15px] font-medium cursor-pointer",
           localActive === provider
             ? "text-foreground"
             : "text-muted-foreground hover:text-foreground",
@@ -81,7 +81,7 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
       >
         <span
           className={cn(
-            "rounded-md px-2 sm:px-3 py-1 sm:py-1.5 transition-colors flex items-center gap-1.5",
+            "rounded-md px-2 sm:px-3 py-1 sm:py-1.5 flex items-center gap-1.5",
             localActive === provider
               ? "bg-secondary text-foreground"
               : "hover:bg-secondary",
@@ -109,7 +109,7 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
       variant="outline"
       size="sm"
       onClick={() => router.push("/compare")}
-      className="h-9 w-9 md:h-10 md:w-10 lg:w-auto p-0 lg:pl-3 lg:pr-4 aspect-square lg:aspect-auto flex items-center justify-center gap-1.5 lg:gap-2 rounded-lg border border-border! transition-colors cursor-pointer bg-card/50 hover:bg-secondary! shrink-0"
+      className="h-9 w-9 md:h-10 md:w-10 lg:w-auto p-0 lg:pl-3 lg:pr-4 aspect-square lg:aspect-auto flex items-center justify-center gap-1.5 lg:gap-2 rounded-lg border border-border! cursor-pointer bg-card/50 hover:bg-secondary! shrink-0"
     >
       <Columns2 className="w-4 h-4 md:w-[18px] md:h-[18px] text-foreground" strokeWidth={2} />
       <span className="hidden lg:inline-block text-[13px] md:text-[14px] font-semibold text-foreground">
@@ -160,11 +160,11 @@ function HeaderContent({ activeProvider: propActiveProvider }: HeaderProps) {
               />
             </svg>
             <div className="flex items-center gap-1 sm:gap-2">
-              <span className="text-xl sm:text-2xl font-normal text-muted-foreground transition-colors group-hover:text-muted-foreground/70">
+              <span className="text-xl sm:text-2xl font-normal text-muted-foreground group-hover:text-muted-foreground/70">
                 /
               </span>
             </div>
-            <span className="text-[15px] sm:text-[18px] font-semibold tracking-tight text-foreground transition-opacity group-hover:opacity-80">
+            <span className="text-[15px] sm:text-[18px] font-semibold tracking-tight text-foreground group-hover:opacity-80">
               WhichVM
             </span>
           </div>
